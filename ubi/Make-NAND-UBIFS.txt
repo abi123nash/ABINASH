@@ -1,0 +1,231 @@
+[    1.753259] Creating 10 MTD partitions on "omap2-nand.0":
+[    1.758735] 0x000000000000-0x000000040000 : "NAND.SPL"
+[    1.766646] 0x000000040000-0x000000080000 : "NAND.SPL.backup1"
+[    1.775160] 0x000000080000-0x0000000c0000 : "NAND.SPL.backup2"
+[    1.783723] 0x0000000c0000-0x000000100000 : "NAND.SPL.backup3"
+[    1.792167] 0x000000100000-0x000000180000 : "NAND.u-boot-spl-os"
+[    1.800834] 0x000000180000-0x000000280000 : "NAND.u-boot"
+[    1.808961] 0x000000280000-0x0000002c0000 : "NAND.u-boot-env"
+[    1.817323] 0x0000002c0000-0x000000300000 : "NAND.u-boot-env.backup1"
+[    1.826454] 0x000000300000-0x000000a00000 : "NAND.kernel"
+[    1.835287] 0x000000a00000-0x000020000000 : "NAND.file-system"
+
+1)
+sudo apt update
+sudo apt install mtd-utils
+
+2)file name ubinize.cfg
+=======================
+
+[ubifs]
+mode=ubi
+image=rootfs.ubifs
+vol_id=0
+vol_size=483MiB
+vol_type=dynamic
+vol_name=rootfs
+vol_alignment=1
+vol_flags=autoresize
+
+3)
+sudo mkfs.ubifs -r /home/zumi/Abinash/AM4376/tisdk/build/arago-tmp-external-arm-glibc/deploy/images/am437x-evm/manual/rootfs -o rootfs.ubifs -F -m 2048 -e 126976 -c 3932
+sudo ubinize -o rootfs.ubi -m 2048 -p 128KiB -s 512 -O 2048 ubinize.cfg
+
+
+=================================================above working confram==========================================================================================================================
+
+split -n 4 rootfs.ubi split/ubi_
+cp split/ubi_a* /media/zumi/Zumi/
+umount /media/zumi/Zumi 
+
+
+ubinize.cfg
+[ubifs]
+mode=ubi
+image=rootfs.ubifs
+vol_id=0
+vol_size=483MiB
+vol_type=dynamic
+vol_name=rootfs
+vol_alignment=1
+vol_flags=autoresize
+
+
+
+final working path can iproute at25 copy manualy 
+==================================================
+
+sudo mkfs.ubifs -r /home/zumi/Abinash/AM4376/tisdk/build/arago-tmp-external-arm-glibc/deploy/images/am437x-evm/check -o rootfs.ubifs -F -m 2048 -e 126976 -c 3932 
+sudo ubinize -o rootfs.ubi -m 2048 -p 128KiB -s 512 -O 2048 ubinize.cfg
+
+
+manual brctl ko files 
+===================
+stp.ko
+llc.ko
+bridge.ko
+
+
+
+sudo mkfs.ubifs -r /home/zumi/Abinash/AM4376/tisdk/build/arago-tmp-external-arm-glibc/deploy/images/am437x-evm/pearl/rootfs -o rootfs.ubifs -F -m 2048 -e 126976 -c 3932 
+sudo ubinize -o rootfs.ubi -m 2048 -p 128KiB -s 512 -O 2048 ubinize.cfg
+
+
+am4376 512 tiny rootfs 
+===========================================
+
+
+sudo mkfs.ubifs -r /home/zumi/Abinash/AM4376/tisdk/build/arago-tmp-external-arm-glibc/deploy/images/am437x-evm/tiny -o rootfs.ubifs -F -m 2048 -e 126976 -c 3932 
+sudo ubinize -o rootfs.ubi -m 2048 -p 128KiB -s 512 -O 2048 ubinize.cfg
+
+
+/home/zumi/Abinash/AM4376/tisdk/build/arago-tmp-external-arm-glibc/deploy/images/am437x-evm/pearl/rootfs
+
+
+
+sudo mkfs.ubifs -r /home/zumi/Abinash/AM4376/tisdk/build/arago-tmp-external-arm-glibc/deploy/images/am437x-evm/check -o rootfs.ubifs -F -m 2048 -e 126976 -c 3932 
+sudo ubinize -o rootfs.ubi -m 2048 -p 128KiB -s 512 -O 4096 ubinize.cfg
+
+sudo mkfs.ubifs -r /path/to/rootfs -o rootfs.ubifs -F -m 2048 -e 126976 -c 3932
+sudo ubinize -o rootfs.ubi -m 2048 -p 128KiB -s 512 -O 4096 ubinize.cfg
+
+
+ubinize.cfg
+[ubifs]
+mode=ubi
+image=rootfs.ubifs
+vol_id=0
+vol_size=483MiB
+vol_type=dynamic
+vol_name=rootfs
+vol_alignment=1
+vol_flags=autoresize
+
+
+=====================================================================above pearl  ethernet small board =============================================================================
+
+
+make 1gp board tiny image 
+============================
+
+root@am437x-evm:~# ubiattach /dev/ubi_ctrl -m 9
+[  198.193548] ubi1: attaching mtd9
+[  198.394520] ubi1: scanning is finished
+[  198.438106] ubi1: attached mtd9 (name "NAND.file-system-2", size 50 MiB)
+[  198.438156] ubi1: PEB size: 262144 bytes (256 KiB), LEB size: 258048 bytes
+UBI device number 1, total 200 LEBs (51609600 bytes, 49.2 MiB), [  198.438179] ubi1: min./max. I/O unit sizes: 4096/4096, sub-page size 1024
+available 116 LEBs (29933568 bytes, 28.5 MiB), LEB size 258048 bytes (252.0 KiB)
+root@am437x-evm:~# [  198.438198] ubi1: VID header offset: 4096 (aligned 1024), data offset: 4096
+[  198.438215] ubi1: good PEBs: 200, bad PEBs: 0, corrupted PEBs: 0
+[  198.438233] ubi1: user volume: 0, internal volumes: 1, max. volumes count: 128
+[  198.438252] ubi1: max/mean erase counter: 1/1, WL threshold: 4096, image sequence number: 4172805473
+[  198.438274] ubi1: available PEBs: 116, total reserved PEBs: 84, PEBs reserved for bad PEB handling: 80
+[  198.458731] ubi1: background thread "ubi_bgt1d" started, PID 1959
+
+root@am437x-evm:~# ubinfo -a
+UBI version:                    1
+Count of UBI devices:           2
+UBI control device major/minor: 10:63
+Present UBI devices:            ubi0, ubi1
+
+ubi0
+Volumes count:                           1
+Logical eraseblock size:                 253952 bytes, 248.0 KiB
+Total amount of logical eraseblocks:     3384 (859373568 bytes, 819.5 MiB)
+Amount of available logical eraseblocks: 0 (0 bytes)
+Maximum count of volumes                 128
+Count of bad physical eraseblocks:       0
+Count of reserved physical eraseblocks:  80
+Current maximum erase counter value:     2
+Minimum input/output unit size:          4096 bytes
+Character device major/minor:            242:0
+Present volumes:                         0
+
+Volume ID:   0 (on ubi0)
+Type:        dynamic
+Alignment:   1
+Size:        3300 LEBs (838041600 bytes, 799.2 MiB)
+State:       OK
+Name:        rootfs
+Character device major/minor: 242:1
+
+
+-p = physical eraseblock size = 256KiB
+-e = logical eraseblock size = 258048
+-m = smallest flash I/O unit = 2048•
+-s = VID header offset = 2048 (some flash will also have a sub-page
+size reported when you run ubiattach, which is what you should use
+with –s)
+-c = available PEB = 966
+
+
+-m 4096    <=========>  Minimum input/output unit size:          4096 bytes
+-e 253952  <=========>  Logical eraseblock size:                 253952
+-c 200     <=========>  ubi1: available PEBs: 116
+-p 256KIB  <=========>  ubi1: PEB size: 262144 bytes (256 KiB),
+-s 4096    <=========>  ubi1: VID header offset: 4096 
+
+
+working 1gp 
+===================
+
+main
+====
+
+
+sw-update-board rstp_mstp ubi file make 
+=========================================
+
+1)file name ubinize.cfg
+
+[ubifs]
+mode=ubi
+image=rootfs.ubifs
+vol_id=0
+vol_size=310MiB
+vol_type=dynamic
+vol_name=rootfs
+vol_alignment=1
+vol_flags=autoresize 
+
+
+2)sudo mkfs.ubifs -r /home/zumi/Abinash/AM4376/tisdk/build/arago-tmp-external-arm-glibc/deploy/images/am437x-evm/rstp_mstp/rootfs -o rootfs.ubifs -F -m 4096 -e 253952 -c 200
+sudo ubinize -o rootfs.ubi -m 4096 -p 256KiB -s 4096 -O 4096 ubinize.cfg
+
+
+
+tiny
+=====
+
+1)file name ubinize.cfg
+
+[ubifs]
+mode=ubi
+image=rootfs.ubifs
+vol_id=0
+vol_size=28MiB
+vol_type=dynamic
+vol_name=rootfs
+vol_alignment=1
+vol_flags=autoresize
+
+
+sudo mkfs.ubifs -r /home/zumi/Abinash/AM4376/tisdk/build/arago-tmp-external-arm-glibc/deploy/images/am437x-evm/tiny -o rootfs.ubifs -F -m 4096 -e 253952 -c 200
+sudo ubinize -o rootfs.ubi -m 4096 -p 256KiB -s 4096 -O 4096 ubinize.cfg
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
