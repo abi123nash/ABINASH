@@ -1,0 +1,353 @@
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ 
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ ks
+ks: command not found
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ ls
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ vi 1.c
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ vi 1.c
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ 
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ ls
+1.c
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ 
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ 
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ vi secure.c
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ 
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ vi secure.c
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ 
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ 
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ vi clinet.c
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ mv secure.c server.c
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ ls
+clinet.c  server.c
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ gcc server.c 
+server.c:140:6: error: redefinition of ‘init_openssl’
+ void init_openssl() {
+      ^~~~~~~~~~~~
+server.c:14:6: note: previous definition of ‘init_openssl’ was here
+ void init_openssl() {
+      ^~~~~~~~~~~~
+server.c:145:10: error: redefinition of ‘create_context’
+ SSL_CTX *create_context() {
+          ^~~~~~~~~~~~~~
+server.c:19:10: note: previous definition of ‘create_context’ was here
+ SSL_CTX *create_context() {
+          ^~~~~~~~~~~~~~
+server.c:156:6: error: redefinition of ‘calculate_sha256’
+ void calculate_sha256(const char *file_path, unsigned char *hash) {
+      ^~~~~~~~~~~~~~~~
+server.c:38:6: note: previous definition of ‘calculate_sha256’ was here
+ void calculate_sha256(const char *file_path, unsigned char *hash) {
+      ^~~~~~~~~~~~~~~~
+server.c:174:5: error: redefinition of ‘main’
+ int main() {
+     ^~~~
+server.c:75:5: note: previous definition of ‘main’ was here
+ int main() {
+     ^~~~
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ vi secure.c^C
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ ls
+clinet.c  secure.c  server.c
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ mv secure.c server.c
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ gcc server.c 
+/tmp/cchAOouN.o: In function `init_openssl':
+server.c:(.text+0xf): undefined reference to `OPENSSL_init_ssl'
+server.c:(.text+0x1e): undefined reference to `OPENSSL_init_ssl'
+/tmp/cchAOouN.o: In function `create_context':
+server.c:(.text+0x2e): undefined reference to `TLS_server_method'
+server.c:(.text+0x3e): undefined reference to `SSL_CTX_new'
+server.c:(.text+0x64): undefined reference to `ERR_print_errors_fp'
+/tmp/cchAOouN.o: In function `configure_context':
+server.c:(.text+0x98): undefined reference to `SSL_CTX_use_certificate_file'
+server.c:(.text+0xb4): undefined reference to `SSL_CTX_use_PrivateKey_file'
+server.c:(.text+0xc7): undefined reference to `ERR_print_errors_fp'
+/tmp/cchAOouN.o: In function `calculate_sha256':
+server.c:(.text+0x10b): undefined reference to `SHA256_Init'
+server.c:(.text+0x168): undefined reference to `SHA256_Update'
+server.c:(.text+0x1b5): undefined reference to `SHA256_Final'
+/tmp/cchAOouN.o: In function `send_file':
+server.c:(.text+0x262): undefined reference to `SSL_write'
+server.c:(.text+0x2dc): undefined reference to `SSL_write'
+/tmp/cchAOouN.o: In function `main':
+server.c:(.text+0x3fe): undefined reference to `SSL_new'
+server.c:(.text+0x413): undefined reference to `SSL_set_fd'
+server.c:(.text+0x41f): undefined reference to `SSL_accept'
+server.c:(.text+0x432): undefined reference to `ERR_print_errors_fp'
+server.c:(.text+0x45f): undefined reference to `SSL_read'
+server.c:(.text+0x483): undefined reference to `SSL_shutdown'
+server.c:(.text+0x48f): undefined reference to `SSL_free'
+server.c:(.text+0x4af): undefined reference to `SSL_CTX_free'
+collect2: error: ld returned 1 exit status
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ 
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ gcc server.c -o server -lssl -lcrypto
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ 
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ 
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ ls
+clinet.c  server  server.c
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ 
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ 
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ gcc server.c^Co server -lssl -lcrypto
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ cat readme.txt 
+gcc server.c -o server -lssl -lcrypto
+gcc clint.c -o clint -lssl -lcrypto
+
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ gcc clint.c -o clint -lssl -lcrypto
+gcc: error: clint.c: No such file or directory
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ ls
+clinet.c  readme.txt  server  server.c
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ cat readme.txt 
+gcc server.c -o server -lssl -lcrypto
+gcc client.c -o client -lssl -lcrypto
+
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ gcc client.c -o client -lssl -lcrypto
+gcc: error: client.c: No such file or directory
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ gcc client.c -o client -lssl -lcrypto
+gcc: error: client.c: No such file or directory
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ cat readme.txt 
+gcc server.c -o server -lssl -lcrypto
+gcc clinet.c -o clinet -lssl -lcrypto
+
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ gcc clinet.c -o clinet -lssl -lcrypto
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ 
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ 
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ ls
+clinet  clinet.c  readme.txt  server  server.c
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ 
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ 
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ vi server.c 
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ vi clinet,
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ vi clinet.c 
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ cat readme.txt 
+gcc server.c -o server -lssl -lcrypto
+gcc clinet.c -o clinet -lssl -lcrypto
+
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ gcc server.c -o server -lssl -lcrypto
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ gcc clinet.c -o clinet -lssl -lcrypto
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ 
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ 
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ 
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ ./server 
+140048507015616:error:02001002:system library:fopen:No such file or directory:../crypto/bio/bss_file.c:290:fopen('server.crt','r')
+140048507015616:error:20074002:BIO routines:file_ctrl:system lib:../crypto/bio/bss_file.c:292:
+140048507015616:error:140AD002:SSL routines:SSL_CTX_use_certificate_file:system lib:../ssl/ssl_rsa.c:390:
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ cat readme.txt 
+gcc server.c -o server -lssl -lcrypto
+gcc clinet.c -o clinet -lssl -lcrypto
+
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ gcc server.c -o server -lssl -lcrypto
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ gcc clinet.c -o clinet -lssl -lcrypto
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ ./clinet 
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ ls
+clinet  clinet.c  readme.txt  server  server.c
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ ./clinet 
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ ./clinet 
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ vi clinet
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ vi clinet.c 
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ vi readme.txt 
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ 
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ 
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ mv clinet.c client.c
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ ls
+client.c  clinet  readme.txt  server  server.c
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ cat readme.txt 
+gcc server.c -o server -lssl -lcrypto
+gcc client.c -o Client -lssl -lcrypto
+
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ gcc server.c -o server -lssl -lcrypto
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ gcc client.c -o Client -lssl -lcrypto
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ 
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ 
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ ./clinet 
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ ./server 
+139725397356992:error:02001002:system library:fopen:No such file or directory:../crypto/bio/bss_file.c:290:fopen('server.crt','r')
+139725397356992:error:20074002:BIO routines:file_ctrl:system lib:../crypto/bio/bss_file.c:292:
+139725397356992:error:140AD002:SSL routines:SSL_CTX_use_certificate_file:system lib:../ssl/ssl_rsa.c:390:
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ vi server.c 
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ 
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ 
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ vi cli
+client.c  clinet    
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ vi client.c 
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ 
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ 
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ cat readme.txt 
+gcc server.c -o server -lssl -lcrypto
+gcc client.c -o Client -lssl -lcrypto
+
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ gcc server.c -o server -lssl -lcrypto
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ gcc client.c -o Client -lssl -lcrypto
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ ./server 
+Zumi Fun: main Line: 89
+Zumi Fun: main Line: 91
+Zumi Fun: main Line: 93
+139999937241536:error:02001002:system library:fopen:No such file or directory:../crypto/bio/bss_file.c:290:fopen('server.crt','r')
+139999937241536:error:20074002:BIO routines:file_ctrl:system lib:../crypto/bio/bss_file.c:292:
+139999937241536:error:140AD002:SSL routines:SSL_CTX_use_certificate_file:system lib:../ssl/ssl_rsa.c:390:
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ ./server 
+Zumi Fun: main Line: 89
+Zumi Fun: main Line: 91
+Zumi Fun: main Line: 93
+139638852194752:error:02001002:system library:fopen:No such file or directory:../crypto/bio/bss_file.c:290:fopen('server.crt','r')
+139638852194752:error:20074002:BIO routines:file_ctrl:system lib:../crypto/bio/bss_file.c:292:
+139638852194752:error:140AD002:SSL routines:SSL_CTX_use_certificate_file:system lib:../ssl/ssl_rsa.c:390:
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ ./server 
+Zumi Fun: main Line: 89
+Zumi Fun: main Line: 91
+Zumi Fun: main Line: 93
+139824962838976:error:02001002:system library:fopen:No such file or directory:../crypto/bio/bss_file.c:290:fopen('server.crt','r')
+139824962838976:error:20074002:BIO routines:file_ctrl:system lib:../crypto/bio/bss_file.c:292:
+139824962838976:error:140AD002:SSL routines:SSL_CTX_use_certificate_file:system lib:../ssl/ssl_rsa.c:390:
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ 
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ 
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ 
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ vi server.c 
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/normal_secure_socket_example$ 
+
+
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/secure_socket_example$ vi readme.txt
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/secure_socket_example$ vi readme.txt
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/secure_socket_example$ vi readme.txt
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/secure_socket_example$ ifconfig 
+eno1: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 192.168.0.153  netmask 255.255.255.0  broadcast 192.168.0.255
+        inet6 2406:7400:9a:ca8:b8fe:4fc1:4369:4a05  prefixlen 64  scopeid 0x0<global>
+        inet6 fe80::b412:ca5:5a39:906c  prefixlen 64  scopeid 0x20<link>
+        inet6 2406:7400:9a:ca8:33fd:c38a:3a8b:923c  prefixlen 64  scopeid 0x0<global>
+        ether 34:e6:d7:6c:a9:70  txqueuelen 1000  (Ethernet)
+        RX packets 825967  bytes 943899852 (943.8 MB)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 397215  bytes 65683639 (65.6 MB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+        device interrupt 20  memory 0xf7200000-f7220000  
+
+lo: flags=73<UP,LOOPBACK,RUNNING>  mtu 65536
+        inet 127.0.0.1  netmask 255.0.0.0
+        inet6 ::1  prefixlen 128  scopeid 0x10<host>
+        loop  txqueuelen 1000  (Local Loopback)
+        RX packets 28182  bytes 3309118 (3.3 MB)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 28182  bytes 3309118 (3.3 MB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/secure_socket_example$ ./server 
+140477335458240:error:02001002:system library:fopen:No such file or directory:../crypto/bio/bss_file.c:290:fopen('server.crt','r')
+140477335458240:error:20074002:BIO routines:file_ctrl:system lib:../crypto/bio/bss_file.c:292:
+140477335458240:error:140AD002:SSL routines:SSL_CTX_use_certificate_file:system lib:../ssl/ssl_rsa.c:390:
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/secure_socket_example$ vi clinet.c 
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/secure_socket_example$ ./clinet 
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/secure_socket_example$ ./clinet 
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/secure_socket_example$ vi cli
+client.c  clinet    
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/secure_socket_example$ vi cli
+client.c  clinet    
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/secure_socket_example$ vi client.c 
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/secure_socket_example$ 
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/secure_socket_example$ 
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/secure_socket_example$ 
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/secure_socket_example$ ls
+Client  client.c  clinet  readme.txt  server  server.c
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/secure_socket_example$ 
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/secure_socket_example$ 
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/secure_socket_example$ vi readme.txt 
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/secure_socket_example$ 
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/secure_socket_example$ 
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/secure_socket_example$ 
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/secure_socket_example$ ls
+Client  client.c  clinet  readme.txt  server  server.c
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/secure_socket_example$ rm Client 
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/secure_socket_example$ ls
+client.c  clinet  readme.txt  server  server.c
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/secure_socket_example$ cat readme.txt 
+gcc server.c -o server -lssl -lcrypto
+gcc client.c -o client -lssl -lcrypto
+
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/secure_socket_example$ gcc server.c -o server -lssl -lcrypto
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/secure_socket_example$ gcc client.c -o client -lssl -lcrypto
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/secure_socket_example$ 
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/secure_socket_example$ 
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/secure_socket_example$ ./cli
+bash: ./cli: No such file or directory
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/secure_socket_example$ ./cli
+client  clinet  
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/secure_socket_example$ ./client 
+Zumi Fun: main Line: 59
+Zumi Fun: main Line: 61
+Zumi Fun: main Line: 64
+Zumi Fun: main Line: 66
+Zumi Fun: main Line: 68
+Zumi Fun: main Line: 75
+Zumi Fun: main Line: 77
+Zumi Fun: main Line: 80
+Zumi Fun: main Line: 82
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/secure_socket_example$ vi cli
+client    client.c  clinet    
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/secure_socket_example$ ks
+ks: command not found
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/secure_socket_example$ ls
+client  client.c  clinet  readme.txt  server  server.c
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/secure_socket_example$ rm clinet client 
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/secure_socket_example$ 
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/secure_socket_example$ ls
+client.c  readme.txt  server  server.c
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/secure_socket_example$ 
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/secure_socket_example$ 
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/secure_socket_example$ cat readme.txt 
+gcc server.c -o server -lssl -lcrypto
+gcc client.c -o client -lssl -lcrypto
+
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/secure_socket_example$ gcc server.c -o server -lssl -lcrypto
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/secure_socket_example$ gcc client.c -o client -lssl -lcrypto
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/secure_socket_example$ ls
+client  client.c  readme.txt  server  server.c
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/secure_socket_example$ ./client 
+Zumi Fun: main Line: 59
+Zumi Fun: main Line: 61
+Zumi Fun: main Line: 64
+Zumi Fun: main Line: 66
+Zumi Fun: main Line: 68
+Zumi Fun: main Line: 75
+Zumi Fun: main Line: 77
+Zumi Fun: main Line: 80
+Zumi Fun: main Line: 82
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/secure_socket_example$ ./client 
+Zumi Fun: main Line: 59
+Zumi Fun: main Line: 61
+Zumi Fun: main Line: 64
+Zumi Fun: main Line: 66
+Zumi Fun: main Line: 68
+Zumi Fun: main Line: 75
+Zumi Fun: main Line: 77
+Zumi Fun: main Line: 80
+Zumi Fun: main Line: 82
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/secure_socket_example$ vi client.c 
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/secure_socket_example$ 
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/secure_socket_example$ cat readme.txt 
+gcc server.c -o server -lssl -lcrypto
+gcc client.c -o client -lssl -lcrypto
+
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/secure_socket_example$ gcc server.c -o server -lssl -lcrypto
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/secure_socket_example$ gcc client.c -o client -lssl -lcrypto
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/secure_socket_example$ 
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/secure_socket_example$ ./client 
+Zumi Fun: main Line: 64
+Zumi Fun: main Line: 66
+Zumi Fun: main Line: 69
+Zumi Fun: main Line: 71
+Zumi Fun: create_context Line: 31
+Zumi Fun: create_context Line: 33
+Zumi Fun: main Line: 73
+Zumi Fun: main Line: 80
+Zumi Fun: main Line: 82
+Zumi Fun: main Line: 85
+Zumi Fun: main Line: 87
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/secure_socket_example$ cat readme.txt ^C
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/secure_socket_example$ vi client.c 
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/secure_socket_example$ 
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/secure_socket_example$ vi client.c 
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/secure_socket_example$ 
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/secure_socket_example$ vi server.c 
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/secure_socket_example$ 
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/secure_socket_example$ 
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/secure_socket_example$ 
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/secure_socket_example$ vi file_to_send.txt^C
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/secure_socket_example$ vi file_to_send.txt
+zumi@zumi-Abinash:~/Abinash/am4376_board_bringup_new_project/sw-update/secure_socket_example$ 
+

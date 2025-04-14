@@ -1,0 +1,242 @@
+root@imx93evk:~# 
+root@imx93evk:~# #pc1 All connect 
+root@imx93evk:~# 
+root@imx93evk:~# 
+root@imx93evk:~# 
+root@imx93evk:~# 
+root@imx93evk:~# 
+root@imx93evk:~# 
+root@imx93evk:~# 
+root@imx93evk:~# 
+root@imx93evk:~# brctl showstp br0
+br0
+ bridge id              8000.4a3b5ece2f6e
+ designated root        8000.4a3b5ece2f6e
+ root port                 0                    path cost                  0
+ max age                  20.00                 bridge max age            20.00
+ hello time                2.00                 bridge hello time          2.00
+ forward delay            15.00                 bridge forward delay      15.00
+ ageing time             300.00
+ hello timer               0.00                 tcn timer                  0.00
+ topology change timer     0.00                 gc timer                 184.84
+ flags
+
+
+eth0 (1)
+ port id                8001                    state                forwarding
+ designated root        8000.4a3b5ece2f6e       path cost                 19
+ designated bridge      8000.4a3b5ece2f6e       message age timer          0.00
+ designated port        8001                    forward delay timer        0.00
+ designated cost           0                    hold timer                 0.00
+ flags
+
+eth1 (2)
+ port id                8002                    state                forwarding
+ designated root        8000.4a3b5ece2f6e       path cost                  5
+ designated bridge      8000.4a3b5ece2f6e       message age timer          0.00
+ designated port        8002                    forward delay timer        0.00
+ designated cost           0                    hold timer                 0.00
+ flags
+
+root@imx93evk:~# 
+root@imx93evk:~# 
+root@imx93evk:~# ping 192.168.0.10
+PING 192.168.0.10 (192.168.0.10) 56(84) bytes of data.
+64 bytes from 192.168.0.10: icmp_seq=1 ttl=64 time=1.29 ms
+64 bytes from 192.168.0.10: icmp_seq=2 ttl=64 time=1.27 ms
+64 bytes from 192.168.0.10: icmp_seq=3 ttl=64 time=1.25 ms
+64 bytes from 192.168.0.10: icmp_seq=4 ttl=64 time=1.14 ms
+^C
+--- 192.168.0.10 ping statistics ---
+4 packets transmitted, 4 received, 0% packet loss, time 3004ms
+rtt min/avg/max/mdev = 1.139/1.236/1.286/0.057 ms
+root@imx93evk:~# ping 192.168.0.12
+PING 192.168.0.12 (192.168.0.12) 56(84) bytes of data.
+64 bytes from 192.168.0.12: icmp_seq=1 ttl=64 time=0.921 ms
+64 bytes from 192.168.0.12: icmp_seq=2 ttl=64 time=0.939 ms
+^C
+--- 192.168.0.12 ping statistics ---
+2 packets transmitted, 2 received, 0% packet loss, time 1001ms
+rtt min/avg/max/mdev = 0.921/0.930/0.939/0.009 ms
+root@imx93evk:~# 
+root@imx93evk:~# 
+root@imx93evk:~# #pc1 pc1 and pc2 disconnect
+root@imx93evk:~# 
+root@imx93evk:~# 
+root@imx93evk:~# 
+root@imx93evk:~# 
+root@imx93evk:~# 
+root@imx93evk:~# brctl showstp br0
+br0
+ bridge id              8000.4a3b5ece2f6e
+ designated root        8000.4a3b5ece2f6e
+ root port                 0                    path cost                  0
+ max age                  20.00                 bridge max age            20.00
+ hello time                2.00                 bridge hello time          2.00
+ forward delay            15.00                 bridge forward delay      15.00
+ ageing time             300.00
+ hello timer               0.00                 tcn timer                  0.00
+ topology change timer     0.00                 gc timer                  56.76
+ flags
+
+
+eth0 (1)
+ port id                8001                    state                forwarding
+ designated root        8000.4a3b5ece2f6e       path cost                 19
+ designated bridge      8000.4a3b5ece2f6e       message age timer          0.00
+ designated port        8001                    forward delay timer        0.00
+ designated cost           0                    hold timer                 0.00
+ flags
+
+eth1 (2)
+ port id                8002                    state                  disabled
+ designated root        8000.4a3b5ece2f6e       path cost                  5
+ designated bridge      8000.4a3b5ece2f6e       message age timer          0.00
+ designated port        8002                    forward delay timer        0.00
+ designated cost           0                    hold timer                 0.00
+ flags
+
+root@imx93evk:~# 
+root@imx93evk:~# 
+root@imx93evk:~# ping 192.168.0.10
+PING 192.168.0.10 (192.168.0.10) 56(84) bytes of data.
+64 bytes from 192.168.0.10: icmp_seq=1 ttl=64 time=1.10 ms
+64 bytes from 192.168.0.10: icmp_seq=2 ttl=64 time=1.10 ms
+64 bytes from 192.168.0.10: icmp_seq=3 ttl=64 time=1.07 ms
+^C
+--- 192.168.0.10 ping statistics ---
+3 packets transmitted, 3 received, 0% packet loss, time 2002ms
+rtt min/avg/max/mdev = 1.073/1.089/1.098/0.011 ms
+root@imx93evk:~# ping 192.168.0.12
+PING 192.168.0.12 (192.168.0.12) 56(84) bytes of data.
+64 bytes from 192.168.0.12: icmp_seq=1 ttl=64 time=1.09 ms
+64 bytes from 192.168.0.12: icmp_seq=2 ttl=64 time=1.09 ms
+64 bytes from 192.168.0.12: icmp_seq=3 ttl=64 time=1.09 ms
+64 bytes from 192.168.0.12: icmp_seq=4 ttl=64 time=1.09 ms
+^C
+--- 192.168.0.12 ping statistics ---
+4 packets transmitted, 4 received, 0% packet loss, time 3004ms
+rtt min/avg/max/mdev = 1.088/1.090/1.092/0.001 ms
+root@imx93evk:~# 
+root@imx93evk:~# 
+root@imx93evk:~# #pc1 pc1 and board disconnect                                                                                                                                                             
+root@imx93evk:~# 
+root@imx93evk:~# 
+root@imx93evk:~# 
+root@imx93evk:~# 
+root@imx93evk:~# brctl showstp br0
+br0
+ bridge id              8000.4a3b5ece2f6e
+ designated root        8000.4a3b5ece2f6e
+ root port                 0                    path cost                  0
+ max age                  20.00                 bridge max age            20.00
+ hello time                2.00                 bridge hello time          2.00
+ forward delay            15.00                 bridge forward delay      15.00
+ ageing time             300.00
+ hello timer               0.00                 tcn timer                  0.00
+ topology change timer     0.00                 gc timer                   0.00
+ flags
+
+
+eth0 (1)
+ port id                8001                    state                  disabled
+ designated root        8000.4a3b5ece2f6e       path cost                 19
+ designated bridge      8000.4a3b5ece2f6e       message age timer          0.00
+ designated port        8001                    forward delay timer        0.00
+ designated cost           0                    hold timer                 0.00
+ flags
+
+eth1 (2)
+ port id                8002                    state                forwarding
+ designated root        8000.4a3b5ece2f6e       path cost                  5
+ designated bridge      8000.4a3b5ece2f6e       message age timer          0.00
+ designated port        8002                    forward delay timer        0.00
+ designated cost           0                    hold timer                 0.00
+ flags
+
+root@imx93evk:~# 
+root@imx93evk:~# 
+root@imx93evk:~# 
+root@imx93evk:~# 
+root@imx93evk:~# ping 192.168.0.10
+PING 192.168.0.10 (192.168.0.10) 56(84) bytes of data.
+64 bytes from 192.168.0.10: icmp_seq=1 ttl=64 time=1.31 ms
+64 bytes from 192.168.0.10: icmp_seq=2 ttl=64 time=1.18 ms
+64 bytes from 192.168.0.10: icmp_seq=3 ttl=64 time=1.24 ms
+^C
+--- 192.168.0.10 ping statistics ---
+3 packets transmitted, 3 received, 0% packet loss, time 2002ms
+rtt min/avg/max/mdev = 1.182/1.243/1.309/0.051 ms
+root@imx93evk:~# 
+root@imx93evk:~# 
+root@imx93evk:~# ping 192.168.0.12
+PING 192.168.0.12 (192.168.0.12) 56(84) bytes of data.
+64 bytes from 192.168.0.12: icmp_seq=1 ttl=64 time=0.900 ms
+64 bytes from 192.168.0.12: icmp_seq=2 ttl=64 time=0.915 ms
+64 bytes from 192.168.0.12: icmp_seq=3 ttl=64 time=0.936 ms
+^C
+--- 192.168.0.12 ping statistics ---
+3 packets transmitted, 3 received, 0% packet loss, time 2002ms
+rtt min/avg/max/mdev = 0.900/0.917/0.936/0.014 ms
+root@imx93evk:~# 
+root@imx93evk:~# 
+root@imx93evk:~# 
+root@imx93evk:~# 
+root@imx93evk:~# #pc1 pc2 and board disconnect                                                                                                                                                             
+root@imx93evk:~# 
+root@imx93evk:~# 
+root@imx93evk:~# brctl showstp br0
+br0
+ bridge id              8000.4a3b5ece2f6e
+ designated root        8000.4a3b5ece2f6e
+ root port                 0                    path cost                  0
+ max age                  20.00                 bridge max age            20.00
+ hello time                2.00                 bridge hello time          2.00
+ forward delay            15.00                 bridge forward delay      15.00
+ ageing time             300.00
+ hello timer               0.00                 tcn timer                  0.00
+ topology change timer     0.00                 gc timer                 234.89
+ flags
+
+
+eth0 (1)
+ port id                8001                    state                forwarding
+ designated root        8000.4a3b5ece2f6e       path cost                 19
+ designated bridge      8000.4a3b5ece2f6e       message age timer          0.00
+ designated port        8001                    forward delay timer        0.00
+ designated cost           0                    hold timer                 0.00
+ flags
+
+eth1 (2)
+ port id                8002                    state                forwarding
+ designated root        8000.4a3b5ece2f6e       path cost                  5
+ designated bridge      8000.4a3b5ece2f6e       message age timer          0.00
+ designated port        8002                    forward delay timer        0.00
+ designated cost           0                    hold timer                 0.00
+ flags
+
+root@imx93evk:~# 
+root@imx93evk:~# 
+root@imx93evk:~# ping 192.168.0.10
+PING 192.168.0.10 (192.168.0.10) 56(84) bytes of data.
+64 bytes from 192.168.0.10: icmp_seq=1 ttl=64 time=1.11 ms
+64 bytes from 192.168.0.10: icmp_seq=2 ttl=64 time=1.09 ms
+64 bytes from 192.168.0.10: icmp_seq=3 ttl=64 time=1.09 ms
+^C
+--- 192.168.0.10 ping statistics ---
+3 packets transmitted, 3 received, 0% packet loss, time 2003ms
+rtt min/avg/max/mdev = 1.088/1.093/1.105/0.008 ms
+root@imx93evk:~# 
+root@imx93evk:~# 
+root@imx93evk:~# ping 192.168.0.12
+PING 192.168.0.12 (192.168.0.12) 56(84) bytes of data.
+64 bytes from 192.168.0.12: icmp_seq=1 ttl=64 time=0.911 ms
+64 bytes from 192.168.0.12: icmp_seq=2 ttl=64 time=0.922 ms
+64 bytes from 192.168.0.12: icmp_seq=3 ttl=64 time=0.960 ms
+^C
+--- 192.168.0.12 ping statistics ---
+3 packets transmitted, 3 received, 0% packet loss, time 2002ms
+rtt min/avg/max/mdev = 0.911/0.931/0.960/0.021 ms
+root@imx93evk:~# 
+root@imx93evk:~# 
+root@imx93evk:~# 

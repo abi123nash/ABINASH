@@ -1,0 +1,24 @@
+First, flash the rootfs file from SD card to NAND flash.
+
+Then the board will fully boot.
+
+If sometimes the PHY is not detected, reboot the board, remove the TTL, power off, power on, then connect the TTL.
+
+Automatic login and module installation will run, and the client app will start automatically.
+
+On the board, the user needs to set the device name and IP address in /home/root.
+
+You can run the one_time_setup.sh script one time as follows:
+
+./onetime_setup.sh 'am437x' '192.168.0.xxx'
+
+Each board will have a different name and IP.
+
+On the server, you need to edit the client_information.txt file.
+
+For example, the content should look like this:
+
+am43761 192.168.0.200
+am43762 192.168.0.100
+
+Then just run the ./server.

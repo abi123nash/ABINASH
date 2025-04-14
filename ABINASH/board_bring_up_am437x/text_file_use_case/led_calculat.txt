@@ -1,0 +1,157 @@
+
+you get the information
+------------------------
+cat /sys/kernel/debug/gpio 
+==========================
+
+
+
+gpio5 17a   link
+gpio5 18b   link
+
+
+gpio5 20a   speed
+gpio5 10b   speed
+
+
+Calculations:
+
+    GPIO4 17a:
+    GPIO Number=(4−1)×32+17=3×32+17=96+17=113
+    GPIO Number=(4−1)×32+17=3×32+17=96+17=113
+
+    Result: GPIO 113
+
+    GPIO4 18b:
+    GPIO Number=(4−1)×32+18=3×32+18=96+18=114
+    GPIO Number=(4−1)×32+18=3×32+18=96+18=114
+
+    Result: GPIO 114
+
+    GPIO4 20a:
+    GPIO Number=(4−1)×32+20=3×32+20=96+20=116
+    GPIO Number=(4−1)×32+20=3×32+20=96+20=116
+
+    Result: GPIO 116
+
+    GPIO4 10b:
+    GPIO Number=(4−1)×32+10=3×32+10=96+10=106
+    GPIO Number=(4−1)×32+10=3×32+10=96+10=106
+
+    Result: GPIO 106
+    
+    
+    
+
+echo 113 > /sys/class/gpio/export
+echo 114 > /sys/class/gpio/export
+echo 116 > /sys/class/gpio/export
+echo 106 > /sys/class/gpio/export
+
+
+echo out > /sys/class/gpio/gpio113/direction 
+echo out > /sys/class/gpio/gpio114/direction 
+echo out > /sys/class/gpio/gpio116/direction 
+echo out > /sys/class/gpio/gpio106/direction 
+
+echo 1 > /sys/class/gpio/gpio113/value  
+echo 1 > /sys/class/gpio/gpio114/value   
+echo 1 > /sys/class/gpio/gpio116/value   
+echo 1 > /sys/class/gpio/gpio106/value    
+
+
+
+echo 0 > /sys/class/gpio/gpio113/value  
+echo 0 > /sys/class/gpio/gpio114/value   
+echo 0 > /sys/class/gpio/gpio116/value   
+echo 0 > /sys/class/gpio/gpio106/value    
+
+
+ 
+
+echo 0 > /sys/class/gpio/gpio113/value   
+echo 0 > /sys/class/gpio/gpio114/value
+
+echo 1 > /sys/class/gpio/gpio113/value   
+echo 1 > /sys/class/gpio/gpio114/value
+
+
+
+
+
+
+
+To calculate the GPIO numbers for gpio5 pins, we use the same formula:
+GPIO Number=(Controller−1)×32+Pin
+GPIO Number=(Controller−1)×32+Pin
+Inputs:
+
+    Controller: gpio5 (so the controller number is 5)
+    Pins: 17 (a), 18 (b), 20 (a), and 10 (b)
+
+Calculations:
+
+    GPIO5 17a:
+    GPIO Number=(5−1)×32+17=4×32+17=128+17=145
+    GPIO Number=(5−1)×32+17=4×32+17=128+17=145
+
+    Result: GPIO 145
+
+    GPIO5 18b:
+    GPIO Number=(5−1)×32+18=4×32+18=128+18=146
+    GPIO Number=(5−1)×32+18=4×32+18=128+18=146
+
+    Result: GPIO 146
+
+    GPIO5 20a:
+    GPIO Number=(5−1)×32+20=4×32+20=128+20=148
+    GPIO Number=(5−1)×32+20=4×32+20=128+20=148
+
+    Result: GPIO 148
+
+    GPIO5 10b:
+    GPIO Number=(5−1)×32+10=4×32+10=128+10=138
+    GPIO Number=(5−1)×32+10=4×32+10=128+10=138
+
+    Result: GPIO 138
+
+
+
+
+echo 145 > /sys/class/gpio/export
+echo 146 > /sys/class/gpio/export
+echo 148 > /sys/class/gpio/export
+echo 138 > /sys/class/gpio/export
+
+
+echo out > /sys/class/gpio/gpio145/direction 
+echo out > /sys/class/gpio/gpio146/direction 
+echo out > /sys/class/gpio/gpio148/direction 
+echo out > /sys/class/gpio/gpio138/direction 
+
+echo 1 > /sys/class/gpio/gpio145/value  
+echo 1 > /sys/class/gpio/gpio146/value   
+echo 1 > /sys/class/gpio/gpio148/value   
+echo 1 > /sys/class/gpio/gpio138/value    
+
+
+
+echo 0 > /sys/class/gpio/gpio145/value  
+echo 0 > /sys/class/gpio/gpio146/value   
+echo 0 > /sys/class/gpio/gpio148/value   
+echo 0 > /sys/class/gpio/gpio138/valu
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

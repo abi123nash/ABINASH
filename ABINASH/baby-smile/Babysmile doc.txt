@@ -1,0 +1,25 @@
+Product name: 
+            *Baby Alarm infant respiratory dynamic monitor E-201
+Power supply: 
+            *3 AA alkaline batteries
+Rated voltage:
+            *DC 4.5V
+Battery life:
+            *8 hours per day, about 1 month
+How to use: 
+            *Connect the wire to the end of the controller, place the sensor board on the bottom of the bed, and lay down the mattress.
+            *If the baby not is that surface the sensor sensed for more than 20 seconds, the alarm will operate.
+Product size/weight: 
+            *controller ~about W70*H70*D35mm, about 61g (excluding battery)
+            *sensor board ~about W280*H300*D12mm, about 420g
+Applicable weight: 
+            *2～10kg
+Target age: 
+            *Newborn (0~12 months)
+Detection mechanism:
+            *Piezoelectric sensor type-
+            *These sensors operate based on the piezoelectric effect, where certain materials generate an electrical charge in response to mechanical stress
+Alarm Indication:
+             *Time Interval: If no movement is detected for a specific duration, usually around 20 seconds, an alarm is triggered.
+             *The alarm can be visual LED indicator
+             *beeping sound) to alert caregivers immediately.

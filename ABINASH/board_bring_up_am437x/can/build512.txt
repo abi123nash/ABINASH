@@ -1,0 +1,4295 @@
+=====================================
+Link:  
+https://github.com/microchip-ung/cfm.git  
+
+Inside README.adoc  
+
+Ensure libcfm_netlink.a is Installed  
+ls ~/Downloads/cfm-master/build/libcfm_netlink.a  
+
+Install CFM Library System-Wide  
+cd ~/Downloads/cfm-master/build  
+sudo make install  
+
+Verify Library Installation  
+ls /usr/local/lib/libcfm_netlink.a  
+
+Update Library Cache  
+sudo ldconfig  
+
+=============================  
+MRP Cross Compile  
+=============================  
+
+Building and Installing Dependencies for MRP on ARM  
+
+Run the following command:  
+
+sudo apt update && sudo apt install -y \  
+    cmake \  
+    build-essential \  
+    crossbuild-essential-armhf \  
+    pkg-config \  
+    git \  
+    wget \  
+    unzip  
+
+Dependencies:  
+- libnl (Netlink library)  
+- libmnl (Minimal Netlink Library)  
+- libev (Event Library)  
+- libcfm_netlink (Custom Netlink Library for MRP)  
+
+2.1 Install libnl (Netlink library)  
+
+cd ~/Downloads  
+wget https://www.infradead.org/~tgr/libnl/files/libnl-3.2.25.tar.gz  
+tar xvf libnl-3.2.25.tar.gz  
+cd libnl-3.2.25  
+
+./configure --host=arm-linux-gnueabihf --prefix=/home/zumi/arm-libs/libnl  
+make -j$(nproc)  
+make install  
+
+2.2 Install libmnl (Minimal Netlink Library)  
+
+cd ~/Downloads  
+wget https://netfilter.org/pub/libmnl/libmnl-1.0.5.tar.bz2  
+tar xvf libmnl-1.0.5.tar.bz2  
+cd libmnl-1.0.5  
+
+./configure --host=arm-linux-gnueabihf --prefix=/home/zumi/arm-libs/libmnl  
+make -j$(nproc)  
+make install  
+
+2.3 Install libev (Event Library)  
+
+cd ~/Downloads  
+wget http://dist.schmorp.de/libev/libev-4.33.tar.gz  
+tar xvf libev-4.33.tar.gz  
+cd libev-4.33  
+
+./configure --host=arm-linux-gnueabihf --prefix=/home/zumi/arm-libs/libev  
+make -j$(nproc)  
+make install  
+
+
+
+==============  
+Build  
+==============  
+
+CFM Build  libcfm
+=========  =======
+
+https://github.com/microchip-ung/cfm.git  
+
+cmake .. -DCMAKE_SYSTEM_NAME=Linux \  
+         -DCMAKE_SYSTEM_PROCESSOR=arm \  
+         -DCMAKE_C_COMPILER=arm-linux-gnueabihf-gcc \  
+         -DCMAKE_PREFIX_PATH="/home/zumi/arm-libs/libnl;/home/zumi/arm-libs/libmnl;/home/zumi/arm-libs/libev"  
+    
+
+(or use like this)
+
+cmake .. -DCMAKE_SYSTEM_NAME=Linux -DCMAKE_SYSTEM_PROCESSOR=arm -DCMAKE_C_COMPILER=arm-linux-gnueabihf-gcc -DCMAKE_PREFIX_PATH="/home/zumi/arm-libs/libnl;/home/zumi/arm-libs/libmnl;/home/zumi/arm-libs/libev"
+
+
+
+make -j$(nproc)  
+
+https://github.com/microchip-ung/mrp.git  
+
+MRP Build  
+=========  
+
+cmake .. -DCMAKE_SYSTEM_NAME=Linux \  
+    -DCMAKE_SYSTEM_PROCESSOR=arm \  
+    -DCMAKE_C_COMPILER=arm-linux-gnueabihf-gcc \  
+    -DCMAKE_PREFIX_PATH="/home/zumi/arm-libs/libnl;/home/zumi/arm-libs/libmnl;/home/zumi/arm-libs/libev"  
+
+make -j$(nproc)  
+
+Expected Output:  
+
+[100%] Linking C executable mrp_server  
+[100%] Built target mrp_server  
+
+4. Deploy and Run MRP on ARM Target  
+
+4.1 Transfer to ARM Board  
+
+scp mrp_server root@<ARM_IP>:/home/root/  
+
+4.2 Run on ARM  
+
+On the ARM board:  
+
+chmod +x /home/root/mrp_server  
+/home/root/mrp_server  
+
+Summary of Steps:  
+- Install Required Packages: crossbuild-essential-armhf, cmake, pkg-config, git  
+- Download & Compile Dependencies: libnl, libmnl, libev, libcfm_netlink  
+- Configure and Compile MRP using CMake and make  
+- Deploy and Run on ARM Board  
+
+
+
+Runtime Issue:  
+
+./mrp_server: error while loading shared libraries: libev.so.4: cannot open shared object file: No such file or directory  
+
+Check Library:  
+
+zumi@zumi-pc:~/arm-libs/libev/lib$ ls  
+libev.a  libev.la  libev.so  libev.so.4  libev.so.4.0.0  
+
+Solution: Copy this library from PC to the board’s lib folder  
+
+--------------------------------  
+
+==============  
+Static Build  
+==============  
+
+cd ~/Downloads  
+git clone https://github.com/thom311/libnl.git  
+cd libnl  
+autoreconf -iv  
+./configure --host=arm-linux-gnueabihf --enable-static --disable-shared  
+make -j$(nproc)  
+make install DESTDIR=/home/zumi/arm-libs/libnl  
+
+cd ~/Downloads  
+git clone https://git.netfilter.org/libmnl  
+cd libmnl  
+autoreconf -iv  
+./configure --host=arm-linux-gnueabihf --enable-static --disable-shared  
+make -j$(nproc)  
+make install DESTDIR=/home/zumi/arm-libs/libmnl  
+
+cd ~/Downloads  
+wget http://dist.schmorp.de/libev/Attic/libev-4.33.tar.gz  
+tar xvf libev-4.33.tar.gz  
+cd libev-4.33  
+./configure --host=arm-linux-gnueabihf --enable-static --disable-shared  
+make -j$(nproc)  
+make install DESTDIR=/home/zumi/arm-libs/libev  
+
+cd ~/Downloads/mrp-master/build  
+rm -rf *  
+cmake .. -DCMAKE_SYSTEM_NAME=Linux \  
+    -DCMAKE_SYSTEM_PROCESSOR=arm \  
+    -DCMAKE_C_COMPILER=arm-linux-gnueabihf-gcc \  
+    -DCMAKE_PREFIX_PATH="/home/zumi/arm-libs/libnl;/home/zumi/arm-libs/libmnl;/home/zumi/arm-libs/libev" \  
+    -DCMAKE_EXE_LINKER_FLAGS="-static" \  
+    -DCMAKE_FIND_LIBRARY_SUFFIXES=".a" \  
+    -DCMAKE_SKIP_RPATH=TRUE  
+
+make -j$(nproc)  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+PREFERRED_VERSION_linux-ti-staging.
+====================================
+
+meta-arago/meta-arago-distro/conf/distro/include/branding-core.inc
+
+
+# Set extra preferences based on the product branding (AM-SDK, MC-SDK, etc)
+# Examples could be different PREFERRED_PROVIDER or PREFERRED_VERSION
+# As well as some other configurable aspects or variables
+# Please avoid creating multiple versions of the same brand, if possible
+# The policy is for the "Core" brand to be the default,
+# hence this file is mostly empty and used as a template
+
+# Lower opencl-monitor priority for now
+ALTERNATIVE_PRIORITY_pn-opencl-monitor = "1"
+ALTERNATIVE_PRIORITY_pn-opencl-monitor-ipu = "1"
+
+# Raise priority for sample IPC FW images
+ALTERNATIVE_PRIORITY_pn-ti-ipc-rtos = "15"
+
+PREFERRED_VERSION_linux-ti-staging = "5.4%"
+PREFERRED_VERSION_linux-ti-staging-rt = "5.4%"
+PREFERRED_VERSION_linux-ti-staging-systest = "5.4%"
+PREFERRED_VERSION_u-boot-ti-staging = "2020.01%"
+
+nano ~/karthi/yocto_build_am437x/tisdk/build/conf/local.conf
+
+
+
+
+my pc location fot the rootfs creation
+-------------------------------------------
+
+sudo mkfs.ubifs -r "/home/zumi/Documents/Pearl_Ethernet/Pearl&Vipin/Vipin_code/Modules&script/pearl" \
+-o "/home/zumi/Documents/Pearl_Ethernet/rootfs.ubifs" -F -m 2048 -e 126976 -c 3932
+
+
+
+
+
+
+RSTP:
+
+link
+
+https://software-dl.ti.com/processor-sdk-linux/esd/docs/latest/linux/Industrial_Protocols_RSTP.html#rstp
+
+root@am437x-evm:~# cat 1.sh
+#!/bin/sh
+
+# Function to check MDIO status
+check_mdio_status() {
+    if dmesg | grep -q "phy\[0\]: device 54432400.mdio:00"; then
+        echo "MDIO initialized successfully."
+        return 0
+    else
+        echo "MDIO initialization failed. Rebooting the board..."
+        return 1
+    fi
+}
+
+
+
+# Load kernel modules with delay
+insmod /lib/modules/hsr.ko
+sleep 1                       
+
+insmod /lib/modules/pruss.ko
+sleep 3
+
+# Verify MDIO status
+check_mdio_status
+if [ $? -ne 0 ]; then
+        echo "Exiting script due to MDIO initialization failure."
+#        reboot
+else
+
+        # Load additional kernel modules
+        insmod /lib/modules/pru_rproc.ko
+        sleep 1                        
+                               
+        insmod /lib/modules/icss_iep.ko
+        sleep 1                      
+                             
+        insmod /lib/modules/irq-pruss-intc.ko
+        sleep 1
+
+        insmod /lib/modules/prueth.ko
+        sleep 1                                             
+
+        insmod /lib/modules/llc.ko
+        sleep 1
+
+        insmod /lib/modules/stp.ko
+        sleep 1
+
+        insmod /lib/modules/bridge.ko
+        sleep 1
+
+        # Bring up Ethernet interfaces
+        ifconfig eth0 up
+        sleep 1         
+        
+        ifconfig eth0 192.168.0.15  
+        #udhcpc -i eth0 &
+        sleep 1
+        
+        ifconfig eth1 up
+        sleep 1                                                                
+                 
+        ifconfig eth1 192.168.0.20                        
+      # udhcpc -i eth1 &  
+        sleep 1      
+                                         
+        echo "Kernel module loading and Ethernet setup completed successfully."
+
+fi
+
+
+
+
+
+
+
+
+
+Pearl Ethernet Module
+
+U-Boot Build procedure:
+
+Switch to root user for administrative privileges:
+
+sudo su
+
+Navigate to the source code directory for the project:
+
+cd <source code path>/home/Pearl_Ethernet_Module/u-boot/ti-u-boot-2023.04+gitAUTOINC+d74d0993e2-gd74d0993e2_TI_KEY_ISSI
+
+Download the ARM cross-compiler from Linaro's official site:
+
+sudo wget -c https://releases.linaro.org/components/toolchain/binaries/6.5-2018.12/arm-linux-gnueabihf/gcc-linaro-6.5.0-2018.12-x86_64_arm-linux-gnueabihf.tar.xz
+
+Extract the downloaded cross-compiler archive:
+
+sudo tar xf gcc-linaro-6.5.0-2018.12-x86_64_arm-linux-gnueabihf.tar.xz
+
+Set the cross-compiler path to an environment variable for easy access:
+
+export CC=<compiler path>/home/Pearl_Ethernet_Module/u-boot/ti-u-boot-2023.04+gitAUTOINC+d74d0993e2-gd74d0993e2_TI_KEY_ISSI/gcc-linaro-6.5.0-2018.12-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-
+
+Clean up any existing build files in the U-Boot source code:
+
+make ARCH=arm CROSS_COMPILE=${CC} distclean
+
+Configure the U-Boot build for the AM4376 board:
+
+make ARCH=arm CROSS_COMPILE=${CC} am43xx_evm_defconfig
+
+Compile the U-Boot source code:
+
+make ARCH=arm CROSS_COMPILE=${CC} -j8
+
+
+
+
+
+
+Linux Build procedure:
+
+Switch to root user for administrative privileges:
+sudo su
+
+Navigate to the source code directory for the project:
+
+cd <source code path>//home/Pearl_Ethernet_Module/linux/linux-rt-5.10_isis/linux-rt-5.10_new.100+gitAUTOINC+204ec708dc-g204ec708dc_2may24/linux-rt-5.10_new.100+gitAUTOINC+204ec708dc-g204ec708dc
+
+Download the ARM cross-compiler from Linaro's official site:
+
+sudo wget -c https://releases.linaro.org/components/toolchain/binaries/6.5-2018.12/arm-linux-gnueabihf/gcc-linaro-6.5.0-2018.12-x86_64_arm-linux-gnueabihf.tar.xz
+
+Extract the downloaded cross-compiler archive:
+
+sudo tar xf gcc-linaro-6.5.0-2018.12-x86_64_arm-linux-gnueabihf.tar.xz
+
+Set the cross-compiler path to an environment variable for easy access:
+
+
+
+
+
+export ARCH=arm
+
+
+export CROSS_COMPILE=/home/zumi/gcc-arm-8.3-2019.03-x86_64-arm-linux-gnueabihf/bin/arm-linux-gnueabihf-
+
+export PATH=/home/zumi/gcc-arm-8.3-2019.03-x86_64-arm-linux-gnueabihf/bin:$PATH  <compiler bin path>
+ 
+Clean up any existing build files in the Linux source code:
+
+make distclean
+
+Configure the U-Boot Linux for the AM4376 board:
+
+make tisdk_am437x-evm-rt_defconfig
+
+Compile the Linux source code:
+
+ make -j8 
+
+git diff include/configs/am43xx_evm.h
+
+
+git add include/configs/am43xx_evm.h
+
+
+
+git diff --cached > am43xx_evm.patch
+
+
+
+zumi@zumi:~/abi/Test_Binary_tisdk/Nand_Boot$ ls -l
+total 61524
+-rw-rw-r-- 1 zumi zumi  4744950 Jan  2 12:16 fitImage.itb
+-rw-rw-r-- 1 zumi zumi   156687 Jan  9 21:55 MLO
+-rw-rw-r-- 1 zumi zumi 57278464 Dec 30 20:07 rootfs.ubi
+-rw-rw-r-- 1 zumi zumi   814428 Jan  9 21:55 u-boot.img
+zumi@zumi:~/abi/Test_Binary_tisdk/Nand_Boot$ cd ../Sdboot/
+
+
+zumi@zumi:~/Documents/RELEASE/Images/Nand_Flash$ ls -l
+total 61528
+-rw-rw-r-- 1 zumi zumi  4744950 Jan  2 12:16 fitImage.itb
+-rw-rw-r-- 1 zumi zumi   156687 Jan  9 21:55 MLO
+-rw-rw-r-- 1 zumi zumi 57278464 Dec 30 20:07 rootfs.ubi
+-rw-rw-r-- 1 zumi zumi   814428 Jan  9 21:55 u-boot.img
+zumi@zumi:~/Documents/RELEASE/Images/Nand_Flash$ 
+
+
+zumi@zumi:/media/zumi/03C3-6163$ ls -l
+total 61520
+-rw-r--r-- 1 zumi zumi  4749170 Jan 23 15:10 fitImage.itb
+-rw-r--r-- 1 zumi zumi   156622 Jan 23 15:10 MLO
+-rw-r--r-- 1 zumi zumi 57278464 Dec 30 20:07 rootfs.ubi
+-rw-r--r-- 1 zumi zumi   806380 Jan 23 15:10 u-boot.img
+zumi@zumi:/media/zumi/03C3-6163$ 
+
+zumi@zumi:~/abi/Test_Binary_tisdk/Sdboot$ ls -l
+total 5584
+-rw-r--r-- 1 zumi zumi 4749170 Jan 23 15:10 fitImage.itb
+-rw-r--r-- 1 zumi zumi  156622 Jan 23 15:10 MLO
+-rw-r--r-- 1 zumi zumi  806380 Jan 23 15:10 u-boot.img
+zumi@zumi:~/abi/Test_Binary_tisdk/Sdboot$ 
+
+
+
+
+SRC_URI = "${UBOOT_GIT_URI};protocol=${UBOOT_GIT_PROTOCOL};branch=${BRANCH} \
+             file://Patch_uboot/0001-arch-arm-dts-am437x-gp-evm.dts.patch \
+             file://Patch_uboot/0001-board-ti-am43xx-mux.c.patch \
+             file://Patch_uboot/0001-configs-am43xx_evm_defconfig.patch \
+             file://Patch_uboot/0001-board-ti-am43xx-board.c.patch \
+             file://Patch_uboot/0001-common-spl-spl.c.patch \
+             file://Patch_uboot/0001-include-configs-am43xx_evm.h.patch"
+
+SRC_URI += "${KERNEL_GIT_URI};protocol=${KERNEL_GIT_PROTOCOL};branch=${BRANCH} \
+            file://defconfig"
+0001-arch-arm-boot-dts-am437x-gp-evm.dts.patch       0001-drivers-misc-eeprom-Makefile.patch           0001-drivers-net-phy-dp83822.c.patch
+0001-arch-arm-boot-dts-am437x-gp-evm-hdmi.dts.patch  0001-drivers-net-ethernet-ti-prueth_core.c.patch  0001-drivers-net-phy-Makefile.patch
+
+
+cd ~/karthi/yocto_build_am437x/tisdk/build/arago-tmp-external-arm-glibc/work/am437x_evm-linux-gnueabi/
+
+
+git clone https://source.denx.de/u-boot/u-boot.git u-boot-ti-staging
+cd u-boot-ti-staging
+git checkout v2023.01
+
+cd ~/karthi/yocto_build_am437x/tisdk/build/arago-tmp-external-arm-glibc/work/am437x_evm-linux-gnueabi/u-boot-ti-staging
+
+
+make ARCH=arm CROSS_COMPILE=arm-linux-gnueabi- am43xx_evm_defconfig
+
+
+
+
+you get the information
+------------------------
+cat /sys/kernel/debug/gpio
+==========================
+
+
+
+gpio5 17a   link
+gpio5 18b   link
+
+
+gpio5 20a   speed
+gpio5 10b   speed
+
+
+Calculations:
+
+    GPIO4 17a:
+    GPIO Number=(4−1)×32+17=3×32+17=96+17=113
+    GPIO Number=(4−1)×32+17=3×32+17=96+17=113
+
+    Result: GPIO 113
+
+    GPIO4 18b:
+    GPIO Number=(4−1)×32+18=3×32+18=96+18=114
+    GPIO Number=(4−1)×32+18=3×32+18=96+18=114
+
+    Result: GPIO 114
+
+    GPIO4 20a:
+    GPIO Number=(4−1)×32+20=3×32+20=96+20=116
+    GPIO Number=(4−1)×32+20=3×32+20=96+20=116
+
+    Result: GPIO 116
+
+    GPIO4 10b:
+    GPIO Number=(4−1)×32+10=3×32+10=96+10=106
+    GPIO Number=(4−1)×32+10=3×32+10=96+10=106
+
+    Result: GPIO 106
+    
+    
+    
+
+echo 113 > /sys/class/gpio/export
+echo 114 > /sys/class/gpio/export
+echo 116 > /sys/class/gpio/export
+echo 106 > /sys/class/gpio/export
+
+
+echo out > /sys/class/gpio/gpio113/direction
+echo out > /sys/class/gpio/gpio114/direction
+echo out > /sys/class/gpio/gpio116/direction
+echo out > /sys/class/gpio/gpio106/direction
+
+echo 1 > /sys/class/gpio/gpio113/value  
+echo 1 > /sys/class/gpio/gpio114/value   
+echo 1 > /sys/class/gpio/gpio116/value   
+echo 1 > /sys/class/gpio/gpio106/value    
+
+
+
+echo 0 > /sys/class/gpio/gpio113/value  
+echo 0 > /sys/class/gpio/gpio114/value   
+echo 0 > /sys/class/gpio/gpio116/value   
+echo 0 > /sys/class/gpio/gpio106/value    
+
+
+
+echo 0 > /sys/class/gpio/gpio113/value  
+echo 0 > /sys/class/gpio/gpio116/value  
+
+echo 1 > /sys/class/gpio/gpio113/value  
+echo 1 > /sys/class/gpio/gpio116/value 
+
+
+
+echo 0 > /sys/class/gpio/gpio114/value  
+echo 0 > /sys/class/gpio/gpio106/value    
+
+echo 1 > /sys/class/gpio/gpio114/value  
+echo 1 > /sys/class/gpio/gpio106/value     
+ 
+
+
+To calculate the GPIO numbers for gpio5 pins, we use the same formula:
+GPIO Number=(Controller−1)×32+Pin
+GPIO Number=(Controller−1)×32+Pin
+Inputs:
+
+    Controller: gpio5 (so the controller number is 5)
+    Pins: 17 (a), 18 (b), 20 (a), and 10 (b)
+
+Calculations:
+
+    GPIO5 17a:
+    GPIO Number=(5−1)×32+17=4×32+17=128+17=145
+    GPIO Number=(5−1)×32+17=4×32+17=128+17=145
+
+    Result: GPIO 145
+
+    GPIO5 18b:
+    GPIO Number=(5−1)×32+18=4×32+18=128+18=146
+    GPIO Number=(5−1)×32+18=4×32+18=128+18=146
+
+    Result: GPIO 146
+
+    GPIO5 20a:
+    GPIO Number=(5−1)×32+20=4×32+20=128+20=148
+    GPIO Number=(5−1)×32+20=4×32+20=128+20=148
+
+    Result: GPIO 148
+
+    GPIO5 10b:
+    GPIO Number=(5−1)×32+10=4×32+10=128+10=138
+    GPIO Number=(5−1)×32+10=4×32+10=128+10=138
+
+    Result: GPIO 138
+
+
+
+
+echo 145 > /sys/class/gpio/export
+echo 146 > /sys/class/gpio/export
+echo 148 > /sys/class/gpio/export
+echo 138 > /sys/class/gpio/export
+
+
+echo out > /sys/class/gpio/gpio145/direction
+echo out > /sys/class/gpio/gpio146/direction
+echo out > /sys/class/gpio/gpio148/direction
+echo out > /sys/class/gpio/gpio138/direction
+
+echo 1 > /sys/class/gpio/gpio145/value  
+echo 1 > /sys/class/gpio/gpio146/value   
+echo 1 > /sys/class/gpio/gpio148/value   
+echo 1 > /sys/class/gpio/gpio138/value    
+
+
+
+echo 0 > /sys/class/gpio/gpio145/value  
+echo 0 > /sys/class/gpio/gpio146/value   
+echo 0 > /sys/class/gpio/gpio148/value   
+echo 0 > /sys/class/gpio/gpio138/valu
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+efa70-r3a.arago5.tisdk1.1/git$ vim drivers/net/phy/phy.c 
+zumi@zumi-pc:~/Abinash/AM4376/tisdk/build/arago-tmp-external-arm-glibc/work/am437x_evm-linux-gnueabi/linux-ti-staging/5.4.106+gitAUTOINC+023faefa70-r3a.arago5.tisdk1.1/git$ vim drivers/net/phy/dp83822.c 
+zumi@zumi-pc:~/Abinash/AM4376/tisdk/build/arago-tmp-external-arm-glibc/work/am437x_evm-linux-gnueabi/linux-ti-staging/5.4.106+gitAUTOINC+023faefa70-r3a.arago5.tisdk1.1/git$ vim drivers/net/phy/dp83822.c 
+
+:
+
+
+ethtool eth0:
+-------------
+
+Settings for eth0:
+        Supported ports: [ TP MII ]
+        Supported link modes:   100baseT/Full 
+        Supported pause frame use: No
+        Supports auto-negotiation: Yes
+        Supported FEC modes: Not reported
+        Advertised link modes:  100baseT/Full 
+        Advertised pause frame use: No
+        Advertised auto-negotiation: Yes
+        Advertised FEC modes: Not reported
+        Link partner advertised link modes:  10baseT/Half 10baseT/Full 
+                                             100baseT/Half 100baseT/Full 
+        Link partner advertised pause frame use: Symmetric Receive-only
+        Link partner advertised auto-negotiation: Yes
+        Link partner advertised FEC modes: Not reported
+        Speed: 10Mb/s
+        Duplex: Full
+        Port: Twisted Pair
+        PHYAD: 1
+        Transceiver: internal   // Pearl_Ethernet
+        Auto-negotiation: on
+        MDI-X: Unknown
+        Link detected: yes
+
+
+
+Transceiver: External   // Firmware Update
+
+sudo ethtool -s eth0 autoneg off
+
+
+
+
+
+
+modify External:
+--------------
+
+zumi@zumi:~/Downloads/Nibin/26Aug2024_ISSI_Executables/linux/linux/linux-rt-5.10_isis/linux-rt-5.10_new.100+gitAUTOINC+204ec708dc-g204ec708dc_2may24/linux-rt-5.10_new.100+gitAUTOINC+204ec708dc-g204ec708dc$ grep "XCVR_INTERNAL" * -r
+drivers/net/mii.c:	ecmd->transceiver = XCVR_INTERNAL;
+drivers/net/mii.c:	if (ecmd->transceiver != XCVR_INTERNAL)
+drivers/net/usb/aqc111.c:	elk->base.transceiver = XCVR_INTERNAL;
+drivers/net/mdio.c:	ecmd->transceiver = XCVR_INTERNAL;
+drivers/net/ethernet/broadcom/bnxt/bnxt_hsi.h:	#define PORT_PHY_QCFG_RESP_XCVR_PKG_TYPE_XCVR_INTERNAL 0x1UL
+drivers/net/ethernet/natsemi/natsemi.c:	 * PORT_TP is always XCVR_INTERNAL, PORT_MII and PORT_FIBRE are always
+drivers/net/ethernet/amd/pcnet32.c:			ecmd.transceiver = XCVR_INTERNAL;
+drivers/net/phy/phy.c:				XCVR_INTERNAL : XCVR_EXTERNAL;
+include/uapi/linux/ethtool.h:#define XCVR_INTERNAL		0x00 /* PHY and MAC are in the same package */
+zumi@zumi:~/Downloads/Nibin/26Aug2024_ISSI_Executables/linux/linux/linux-rt-5.10_isis/linux-rt-5.10_new.100+gitAUTOINC+204ec708dc-g204ec708dc_2may24/linux-rt-5.10_new.100+gitAUTOINC+204ec708dc-g204ec708dc$ vi include/uapi/linux/ethtool.h
+zumi@zumi:~/Downloads/Nibin/26Aug2024_ISSI_Executables/linux/linux/linux-rt-5.10_isis/linux-rt-5.10_new.100+gitAUTOINC+204ec708dc-g204ec708dc_2may24/linux-rt-5.10_new.100+gitAUTOINC+204ec708dc-g204ec708dc$ vi include/uapi/linux/ethtool.h
+zumi@zumi:~/Downloads/Nibin/26Aug2024_ISSI_Executables/linux/linux/linux-rt-5.10_isis/linux-rt-5.10_new.100+gitAUTOINC+204ec708dc-g204ec708dc_2may24/linux-rt-5.10_new.100+gitAUTOINC+204ec708dc-g204ec708dc$ sudo su
+[sudo] password for zumi: 
+root@zumi:/home/zumi/Downloads/Nibin/26Aug2024_ISSI_Executables/linux/linux/linux-rt-5.10_isis/linux-rt-5.10_new.100+gitAUTOINC+204ec708dc-g204ec708dc_2may24/linux-rt-5.10_new.100+gitAUTOINC+204ec708dc-g204ec708dc# 
+
+
+
+canDo application run complier:
+-===============================
+sudo apt install libusb-1.0-0-dev
+
+
+https://software-dl.ti.com/processor-sdk-linux/esd/AM437X/08_02_00_24/exports/docs/linux/Foundational_Components/Kernel/Kernel_Drivers/DCAN.html
+
+insmod can.ko
+sleep 0.5
+insmod can-raw.ko
+sleep 0.5
+insmod can-gw.ko  
+sleep 0.5
+insmod can-bcm.ko
+sleep 0.5
+insmod can-dev.ko
+sleep 0.5
+insmod c_can.ko 
+sleep 0.5
+insmod c_can_platform.ko
+sleep 0.5
+
+
+
+ip link set can0 type can bitrate 50000
+
+ip link set can0 up
+
+cansend can0 123#DEADBEEF
+
+
+ip link set can0 down
+ip link set can0 type can bitrate 125000
+ip link set can0 up
+candump can0 &
+cansend can0 123#DEADBEEF
+
+
+
+
+
+
+
+root@am437x-evm:/lib/modules/can# lsmod
+Module                  Size  Used by
+can_raw                20480  0
+can                    24576  1 can_raw
+root@am437x-evm:/lib/modules/can# insmod can-gw.ko  
+[  152.460736] can: netlink gateway - max_hops=1
+root@am437x-evm:/lib/modules/can# insmod can-bcm.ko
+[  158.902360] can: broadcast manager protocol
+root@am437x-evm:/lib/modules/can# insmod can-dev.ko
+[  164.136567] CAN device driver interface
+root@am437x-evm:/lib/modules/can# insmod c_can.ko  
+root@am437x-evm:/lib/modules/can# insmod c_can_platform.ko
+[  175.864109] c_can_platform 481cc000.can: c_can_platform device registered (regs=6a37062e, irq=72)
+root@am437x-evm:/lib/modules/can# ip link set can0 type can bitrate 50000 loopback on
+root@am437x-evm:/lib/modules/can# ip link set can0 up
+[  200.212211] net can0: c_can_hw_raminit_wait_syscon: time out
+root@am437x-evm:/lib/modules/can# [  200.223893] c_can_platform 481cc000.can can0: setting BTR=1c1d BRPE=0000
+[  200.229123] IPv6: ADDRCONF(NETDEV_CHANGE): can0: link becomes ready
+
+root@am437x-evm:/lib/modules/can# cansend can0 123#DEADBEEF
+root@am437x-evm:/lib/modules/can# cangen can0
+^Croot@am437x-evm:/lib/modules/can# candump can0
+^Croot@am437x-evm:/lib/modules/can# candump can0 &
+[1] 768
+root@am437x-evm:/lib/modules/can# cansend can0 123#DEADBEEF
+  can0  123   [4]  DE AD BE EF
+  can0  123   [4]  DE AD BE EF
+root@am437x-evm:/lib/modules/can# ifconfig
+can0      Link encap:UNSPEC  HWaddr 00-00-00-00-00-00-00-00-00-00-00-00-00-00-00-00  
+          UP RUNNING NOARP  MTU:16  Metric:1
+          RX packets:12 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:12 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:10 
+          RX bytes:53 (53.0 B)  TX bytes:53 (53.0 B)
+          Interrupt:72 
+
+lo        Link encap:Local Loopback  
+          inet addr:127.0.0.1  Mask:255.0.0.0
+          inet6 addr: ::1/128 Scope:Host
+          UP LOOPBACK RUNNING  MTU:65536  Metric:1
+          RX packets:162 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:162 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:1000 
+          RX bytes:12300 (12.0 KiB)  TX bytes:12300 (12.0 KiB)
+
+root@am437x-evm:/lib/modules/can# ps
+  PID USER       VSZ STAT COMMAND
+    1 root      7264 S    {systemd} /sbin/init
+    2 root         0 SW   [kthreadd]
+    3 root         0 IW<  [rcu_gp]
+    4 root         0 IW<  [rcu_par_gp]
+    5 root         0 IW   [kworker/0:0-eve]
+    6 root         0 IW<  [kworker/0:0H-mm]
+    7 root         0 IW   [kworker/u2:0-ev]
+    8 root         0 IW<  [mm_percpu_wq]
+    9 root         0 SW   [rcu_tasks_kthre]
+   10 root         0 SW   [ksoftirqd/0]
+   11 root         0 IW   [rcu_preempt]
+   12 root         0 SW   [rcub/0]
+   13 root         0 SW   [rcuc/0]
+   14 root         0 SW   [irq_work/0]
+   15 root         0 SW   [kdevtmpfs]
+   16 root         0 IW<  [netns]
+   17 root         0 IW   [kworker/0:1-eve]
+   18 root         0 SW   [oom_reaper]
+   19 root         0 IW<  [writeback]
+   20 root         0 SW   [kcompactd0]
+   37 root         0 IW<  [kblockd]
+   38 root         0 IW<  [blkcg_punt_bio]
+   39 root         0 IW   [kworker/0:2-rcu]
+   40 root         0 IW   [kworker/0:3-eve]
+   41 root         0 IW   [kworker/0:4-eve]
+   42 root         0 IW   [kworker/0:5-eve]
+   43 root         0 IW   [kworker/0:6-eve]
+   44 root         0 IW   [kworker/0:7-eve]
+   45 root         0 IW   [kworker/0:8-eve]
+   46 root         0 IW<  [edac-poller]
+   47 root         0 IW<  [devfreq_wq]
+   48 root         0 SW   [watchdogd]
+   49 root         0 IW<  [kworker/0:1H-kb]
+   50 root         0 IW<  [rpciod]
+   51 root         0 IW<  [kworker/u3:0]
+   52 root         0 IW<  [xprtiod]
+   53 root         0 SW   [kswapd0]
+   54 root         0 IW<  [nfsiod]
+   55 root         0 SW   [irq/56-44e07000]
+   56 root         0 SW   [irq/64-4804c000]
+   57 root         0 SW   [irq/71-481ae000]
+   58 root         0 SW   [irq/74-48320000]
+   59 root         0 SW   [irq/75-48322000]
+   60 root         0 SW   [irq/78-49000000]
+   61 root         0 SW   [irq/80-49000000]
+   62 root         0 IW<  [kpcitest]
+   63 root         0 IW<  [kpcintb]
+   64 root         0 SW   [irq/73-48310000]
+   65 root         0 SW   [hwrng]
+   66 root         0 IW   [kworker/u2:1-ev]
+   67 root         0 SW   [irq/66-48080000]
+   68 root         0 SW   [irq/63-48030000]
+   69 root         0 SW   [spi1]
+   70 root         0 IW<  [sdhci]
+   71 root         0 SW   [irq/65-mmc0]
+   72 root         0 SW   [irq/65-s-mmc0]
+   73 root         0 IW<  [ipv6_addrconf]
+   74 root         0 SW   [pr/ttyS0]
+   75 root         0 IW<  [mmc_complete]
+   76 root         0 SW   [irq/22-gpmc]
+   77 root         0 SW   [irq/58-44e0b000]
+   78 root         0 SW   [irq/62-4802a000]
+   79 root         0 SW   [irq/68-4819c000]
+   81 root         0 SW   [jbd2/mmcblk0p2-]
+   82 root         0 IW<  [ext4-rsv-conver]
+   93 root         0 IW<  [kworker/0:2H-kb]
+   99 rpc       2724 S    /usr/sbin/rpcbind -w -f
+  100 root     13308 S    /lib/systemd/systemd-journald
+  110 root         0 IW   [kworker/u2:2-fl]
+  111 root         0 IW   [kworker/u2:3-ev]
+  117 root     11432 S    /lib/systemd/systemd-udevd
+  134 systemd- 14532 S    /lib/systemd/systemd-timesyncd
+  215 messageb  3372 S    /usr/bin/dbus-daemon --system --address=systemd: --nofork --nopidfile --systemd-activation --syslog-only
+  285 root      2048 S    /usr/sbin/telnetd
+  346 root      4996 S    /lib/systemd/systemd-logind
+  361 systemd-  5436 S    /lib/systemd/systemd-networkd
+  698 systemd-  5080 S    /lib/systemd/systemd-resolved
+  702 avahi     3660 S    avahi-daemon: running [am437x-evm.local]
+  703 rpcuser   2444 S    /usr/sbin/rpc.statd -F
+  704 avahi     3660 S    avahi-daemon: chroot helper
+  707 root      1504 S    /sbin/agetty -o -p -- \u --noclear tty1 linux
+  708 root      3712 S    /bin/login --
+  710 root         0 SW   [irq/57-44e09000]
+  712 root      6900 S    /lib/systemd/systemd --user
+  713 root      8280 S    (sd-pam)
+  718 root      3012 S    -sh
+  747 root      2240 S    /usr/sbin/netserver
+  764 root         0 SW   [irq/72-can0]
+  768 root      1392 S    candump can0
+  771 root      2136 R    ps
+root@am437x-evm:/lib/modules/can# cansend can0 123#DEADBEEF
+  can0  123   [4]  DE AD BE EF
+  can0  123   [4]  DE AD BE EF
+root@am437x-evm:/lib/modules/can# kill 768
+[1]+  Done                    candump can0
+root@am437x-evm:/lib/modules/can# 
+root@am437x-evm:/lib/modules/can# 
+root@am437x-evm:/lib/modules/can# 
+root@am437x-evm:/lib/modules/can# cansend can0 123#DEADBEEF                            
+root@am437x-evm:/lib/modules/can# candump can0 &                                       
+[1] 774                                                                                
+root@am437x-evm:/lib/modules/can#                                                      
+root@am437x-evm:/lib/modules/can#                                                      
+root@am437x-evm:/lib/modules/can# cansend can0 123#DEADBEEF
+  can0  123   [4]  DE AD BE EF
+  can0  123   [4]  DE AD BE EF
+root@am437x-evm:/lib/modules/can# cansend can0 123#DEADBEEFkk
+
+Wrong CAN-frame format! Try:
+
+    <can_id>#{data}            for 'classic' CAN 2.0 data frames
+    <can_id>#R{len}            for 'classic' CAN 2.0 RTR frames
+    <can_id>##<flags>{data}    for CAN FD frames
+
+<can_id> can have 3 (SFF) or 8 (EFF) hex chars
+{data} has 0..8 (0..64 CAN FD) ASCII hex-values (optionally separated by '.')
+{len} is an optional 0..8 value as RTR frames can contain a valid dlc field
+<flags> a single ASCII Hex value (0 .. F) which defines canfd_frame.flags
+
+e.g. 5A1#11.2233.44556677.88 / 123#DEADBEEF / 5AA# / 123##1 / 213##311223344
+     1F334455#1122334455667788 / 123#R / 00000123#R3
+
+root@am437x-evm:/lib/modules/can# cansend can0 123#DEADBE44  
+  can0  123   [4]  DE AD BE 44
+  can0  123   [4]  DE AD BE 44
+
+
+
+can test link:
+
+https://software-dl.ti.com/processor-sdk-linux/esd/AM437X/08_02_00_24/exports/docs/linux/Foundational_Components/Kernel/Kernel_Drivers/DCAN.html
+
+issuse solve procedure link:
+
+https://community.nxp.com/t5/i-MX-Processors/Busybox-CAN-interface/td-p/710476
+
+
+
+1Gb partition:
+
+        partition@0 {
+            label = "NAND.SPL";              // 256KB 
+            reg = <0x00000000 0x00040000>;
+        };
+        partition@1 {
+            label = "NAND.SPL.backup1";      // 256KB 
+            reg = <0x00040000 0x00040000>;
+        };
+        partition@2 {
+            label = "NAND.SPL.backup2";      // 256KB 
+            reg = <0x00080000 0x00040000>;
+        };
+        partition@3 {
+            label = "NAND.SPL.backup3";      // 256KB 
+            reg = <0x000C0000 0x00040000>;
+        };
+        partition@4 {
+            label = "NAND.u-boot-1";         // 2MB 
+            reg = <0x00100000 0x00200000>;
+        };
+        partition@5 {
+            label = "NAND.kernel-1";         // 10MB 
+            reg = <0x00300000 0x00A00000>;
+        };
+        partition@6 {
+            label = "NAND.file-system-1";    // 846MB
+            reg = <0x00D00000 0x34E00000>;
+        };
+        partition@7 {
+            label = "NAND.u-boot-2";         // 2MB
+            reg = <0x35B00000 0x00200000>;
+        };
+        partition@8 {
+            label = "NAND.kernel-2";         // 10MB
+            reg = <0x35D00000 0x00A00000>;
+        };
+        partition@9 {
+            label = "NAND.file-system-2";    // 50MB
+            reg = <0x36700000 0x03200000>;
+        };
+        partition@10 {
+            label = "NAND.sw-env";           // 3MB
+            reg = <0x39900000 0x00300000>;
+        };
+        partition@11 {
+            label = "NAND.Application";      // 100MB
+            reg = <0x39C00000 0x06400000>;
+        };
+
+
+
+
+PHY  to Connector  loopback checking commands:(eth0)
+
+External loopback:
+
+pc--->Connector-->phy-->Connection->pc    //working perfectly
+
+phytool write eth0/0x00/0x16 0x0050
+
+Back to Normal:
+
+phytool write eth1/0x00/0x16 0x0128
+
+phytool read eth0/0x00/0x16
+
+
+Processor and PHY loopback checking commands:
+
+Pc-->Processor-->phy-->Processor ->pc    //not working 
+
+phytool read eth0/0x00/0x10
+phytool write eth0/0x00/0x00 0x3000  //disable loopback
+phytool write eth0/0x00/0x00 0x6000  //enable loopback
+
+
+phytool read eth0/0x00/0x00
+phytool write eth0/0x00/0x00 0x6100  //disable loopback
+
+Eth1 both are not working
+
+
+ethernet commands:
+==================
+
+Read BMCR Reg:
+=============
+phytool read eth0/0x01/0x00
+
+Enable Loopback:
+================
+phytool write eth0/0x01/0x00 0x7100
+
+Disable Loopback:
+================
+phytool write eth0/0x01/0x00 0x3100
+
+External loopback
+=================
+pc--->Connector-->phy-->Connection->pc
+phytool write eth0/0x00/0x16 0x0050
+
+Back to Normal:
+==============
+phytool write eth1/0x00/0x16 0x0128
+
+
+Writing and verifying data to EEPROM...
+Address 0x00000: Wrote '1', Read '1'
+Address 0x00100: Wrote '1', Read '1'
+Address 0x00200: Wrote '1', Read '1'
+Address 0x00300: Wrote '1', Read '1'
+Address 0x00400: Wrote '1', Read '1'
+Address 0x00500: Wrote '1', Read '1'
+Address 0x00600: Wrote '1', Read '1'
+Address 0x00700: Wrote '1', Read '1'
+Address 0x00800: Wrote '1', Read '1'
+Address 0x00900: Wrote '1', Read '1'
+Address 0x00a00: Wrote '1', Read '1'
+Address 0x00b00: Wrote '1', Read '1'
+Address 0x00c00: Wrote '1', Read '1'
+Address 0x00d00: Wrote '1', Read '1'
+Address 0x00e00: Wrote '1', Read '1'
+Address 0x00f00: Wrote '1', Read '1'
+Address 0x01000: Wrote '1', Read '1'
+Address 0x01100: Wrote '1', Read '1'
+Address 0x01200: Wrote '1', Read '1'
+Address 0x01300: Wrote '1', Read '1'
+Address 0x01400: Wrote '1', Read '1'
+Address 0x01500: Wrote '1', Read '1'
+Address 0x01600: Wrote '1', Read '1'
+Address 0x01700: Wrote '1', Read '1'
+Address 0x01800: Wrote '1', Read '1'
+Address 0x01900: Wrote '1', Read '1'
+Address 0x01a00: Wrote '1', Read '1'
+Address 0x01b00: Wrote '1', Read '1'
+Address 0x01c00: Wrote '1', Read '1'
+Address 0x01d00: Wrote '1', Read '1'
+Address 0x01e00: Wrote '1', Read '1'
+Address 0x01f00: Wrote '1', Read '1'
+Address 0x02000: Wrote '1', Read '1'
+Address 0x02100: Wrote '1', Read '1'
+Address 0x02200: Wrote '1', Read '1'
+Address 0x02300: Wrote '1', Read '1'
+Address 0x02400: Wrote '1', Read '1'
+Address 0x02500: Wrote '1', Read '1'
+Address 0x02600: Wrote '1', Read '1'
+Address 0x02700: Wrote '1', Read '1'
+Address 0x02800: Wrote '1', Read '1'
+Address 0x02900: Wrote '1', Read '1'
+Address 0x02a00: Wrote '1', Read '1'
+Address 0x02b00: Wrote '1', Read '1'
+Address 0x02c00: Wrote '1', Read '1'
+Address 0x02d00: Wrote '1', Read '1'
+Address 0x02e00: Wrote '1', Read '1'
+Address 0x02f00: Wrote '1', Read '1'
+Address 0x03000: Wrote '1', Read '1'
+Address 0x03100: Wrote '1', Read '1'
+Address 0x03200: Wrote '1', Read '1'
+Address 0x03300: Wrote '1', Read '1'
+Address 0x03400: Wrote '1', Read '1'
+Address 0x03500: Wrote '1', Read '1'
+Address 0x03600: Wrote '1', Read '1'
+Address 0x03700: Wrote '1', Read '1'
+Address 0x03800: Wrote '1', Read '1'
+Address 0x03900: Wrote '1', Read '1'
+Address 0x03a00: Wrote '1', Read '1'
+Address 0x03b00: Wrote '1', Read '1'
+Address 0x03c00: Wrote '1', Read '1'
+Address 0x03d00: Wrote '1', Read '1'
+Address 0x03e00: Wrote '1', Read '1'
+Address 0x03f00: Wrote '1', Read '1'
+Address 0x04000: Wrote '1', Read '1'
+Address 0x04100: Wrote '1', Read '1'
+Address 0x04200: Wrote '1', Read '1'
+Address 0x04300: Wrote '1', Read '1'
+Address 0x04400: Wrote '1', Read '1'
+Address 0x04500: Wrote '1', Read '1'
+Address 0x04600: Wrote '1', Read '1'
+Address 0x04700: Wrote '1', Read '1'
+Address 0x04800: Wrote '1', Read '1'
+Address 0x04900: Wrote '1', Read '1'
+Address 0x04a00: Wrote '1', Read '1'
+Address 0x04b00: Wrote '1', Read '1'
+Address 0x04c00: Wrote '1', Read '1'
+Address 0x04d00: Wrote '1', Read '1'
+Address 0x04e00: Wrote '1', Read '1'
+Address 0x04f00: Wrote '1', Read '1'
+Address 0x05000: Wrote '1', Read '1'
+Address 0x05100: Wrote '1', Read '1'
+Address 0x05200: Wrote '1', Read '1'
+Address 0x05300: Wrote '1', Read '1'
+Address 0x05400: Wrote '1', Read '1'
+Address 0x05500: Wrote '1', Read '1'
+Address 0x05600: Wrote '1', Read '1'
+Address 0x05700: Wrote '1', Read '1'
+Address 0x05800: Wrote '1', Read '1'
+Address 0x05900: Wrote '1', Read '1'
+Address 0x05a00: Wrote '1', Read '1'
+Address 0x05b00: Wrote '1', Read '1'
+Address 0x05c00: Wrote '1', Read '1'
+Address 0x05d00: Wrote '1', Read '1'
+Address 0x05e00: Wrote '1', Read '1'
+Address 0x05f00: Wrote '1', Read '1'
+Address 0x06000: Wrote '1', Read '1'
+Address 0x06100: Wrote '1', Read '1'
+Address 0x06200: Wrote '1', Read '1'
+Address 0x06300: Wrote '1', Read '1'
+Address 0x06400: Wrote '1', Read '1'
+Address 0x06500: Wrote '1', Read '1'
+Address 0x06600: Wrote '1', Read '1'
+Address 0x06700: Wrote '1', Read '1'
+Address 0x06800: Wrote '1', Read '1'
+Address 0x06900: Wrote '1', Read '1'
+Address 0x06a00: Wrote '1', Read '1'
+Address 0x06b00: Wrote '1', Read '1'
+Address 0x06c00: Wrote '1', Read '1'
+Address 0x06d00: Wrote '1', Read '1'
+Address 0x06e00: Wrote '1', Read '1'
+Address 0x06f00: Wrote '1', Read '1'
+Address 0x07000: Wrote '1', Read '1'
+Address 0x07100: Wrote '1', Read '1'
+Address 0x07200: Wrote '1', Read '1'
+Address 0x07300: Wrote '1', Read '1'
+Address 0x07400: Wrote '1', Read '1'
+Address 0x07500: Wrote '1', Read '1'
+Address 0x07600: Wrote '1', Read '1'
+Address 0x07700: Wrote '1', Read '1'
+Address 0x07800: Wrote '1', Read '1'
+Address 0x07900: Wrote '1', Read '1'
+Address 0x07a00: Wrote '1', Read '1'
+Address 0x07b00: Wrote '1', Read '1'
+Address 0x07c00: Wrote '1', Read '1'
+Address 0x07d00: Wrote '1', Read '1'
+Address 0x07e00: Wrote '1', Read '1'
+Address 0x07f00: Wrote '1', Read '1'
+Address 0x08000: Wrote '1', Read '1'
+Address 0x08100: Wrote '1', Read '1'
+Address 0x08200: Wrote '1', Read '1'
+Address 0x08300: Wrote '1', Read '1'
+Address 0x08400: Wrote '1', Read '1'
+Address 0x08500: Wrote '1', Read '1'
+Address 0x08600: Wrote '1', Read '1'
+Address 0x08700: Wrote '1', Read '1'
+Address 0x08800: Wrote '1', Read '1'
+Address 0x08900: Wrote '1', Read '1'
+Address 0x08a00: Wrote '1', Read '1'
+Address 0x08b00: Wrote '1', Read '1'
+Address 0x08c00: Wrote '1', Read '1'
+Address 0x08d00: Wrote '1', Read '1'
+Address 0x08e00: Wrote '1', Read '1'
+Address 0x08f00: Wrote '1', Read '1'
+Address 0x09000: Wrote '1', Read '1'
+Address 0x09100: Wrote '1', Read '1'
+Address 0x09200: Wrote '1', Read '1'
+Address 0x09300: Wrote '1', Read '1'
+Address 0x09400: Wrote '1', Read '1'
+Address 0x09500: Wrote '1', Read '1'
+Address 0x09600: Wrote '1', Read '1'
+Address 0x09700: Wrote '1', Read '1'
+Address 0x09800: Wrote '1', Read '1'
+Address 0x09900: Wrote '1', Read '1'
+Address 0x09a00: Wrote '1', Read '1'
+Address 0x09b00: Wrote '1', Read '1'
+Address 0x09c00: Wrote '1', Read '1'
+Address 0x09d00: Wrote '1', Read '1'
+Address 0x09e00: Wrote '1', Read '1'
+Address 0x09f00: Wrote '1', Read '1'
+Address 0x0a000: Wrote '1', Read '1'
+Address 0x0a100: Wrote '1', Read '1'
+Address 0x0a200: Wrote '1', Read '1'
+Address 0x0a300: Wrote '1', Read '1'
+Address 0x0a400: Wrote '1', Read '1'
+Address 0x0a500: Wrote '1', Read '1'
+Address 0x0a600: Wrote '1', Read '1'
+Address 0x0a700: Wrote '1', Read '1'
+Address 0x0a800: Wrote '1', Read '1'
+Address 0x0a900: Wrote '1', Read '1'
+Address 0x0aa00: Wrote '1', Read '1'
+Address 0x0ab00: Wrote '1', Read '1'
+Address 0x0ac00: Wrote '1', Read '1'
+Address 0x0ad00: Wrote '1', Read '1'
+Address 0x0ae00: Wrote '1', Read '1'
+Address 0x0af00: Wrote '1', Read '1'
+Address 0x0b000: Wrote '1', Read '1'
+Address 0x0b100: Wrote '1', Read '1'
+Address 0x0b200: Wrote '1', Read '1'
+Address 0x0b300: Wrote '1', Read '1'
+Address 0x0b400: Wrote '1', Read '1'
+Address 0x0b500: Wrote '1', Read '1'
+Address 0x0b600: Wrote '1', Read '1'
+Address 0x0b700: Wrote '1', Read '1'
+Address 0x0b800: Wrote '1', Read '1'
+Address 0x0b900: Wrote '1', Read '1'
+Address 0x0ba00: Wrote '1', Read '1'
+Address 0x0bb00: Wrote '1', Read '1'
+Address 0x0bc00: Wrote '1', Read '1'
+Address 0x0bd00: Wrote '1', Read '1'
+Address 0x0be00: Wrote '1', Read '1'
+Address 0x0bf00: Wrote '1', Read '1'
+Address 0x0c000: Wrote '1', Read '1'
+Address 0x0c100: Wrote '1', Read '1'
+Address 0x0c200: Wrote '1', Read '1'
+Address 0x0c300: Wrote '1', Read '1'
+Address 0x0c400: Wrote '1', Read '1'
+Address 0x0c500: Wrote '1', Read '1'
+Address 0x0c600: Wrote '1', Read '1'
+Address 0x0c700: Wrote '1', Read '1'
+Address 0x0c800: Wrote '1', Read '1'
+Address 0x0c900: Wrote '1', Read '1'
+Address 0x0ca00: Wrote '1', Read '1'
+Address 0x0cb00: Wrote '1', Read '1'
+Address 0x0cc00: Wrote '1', Read '1'
+Address 0x0cd00: Wrote '1', Read '1'
+Address 0x0ce00: Wrote '1', Read '1'
+Address 0x0cf00: Wrote '1', Read '1'
+Address 0x0d000: Wrote '1', Read '1'
+Address 0x0d100: Wrote '1', Read '1'
+Address 0x0d200: Wrote '1', Read '1'
+Address 0x0d300: Wrote '1', Read '1'
+Address 0x0d400: Wrote '1', Read '1'
+Address 0x0d500: Wrote '1', Read '1'
+Address 0x0d600: Wrote '1', Read '1'
+Address 0x0d700: Wrote '1', Read '1'
+Address 0x0d800: Wrote '1', Read '1'
+Address 0x0d900: Wrote '1', Read '1'
+Address 0x0da00: Wrote '1', Read '1'
+Address 0x0db00: Wrote '1', Read '1'
+Address 0x0dc00: Wrote '1', Read '1'
+Address 0x0dd00: Wrote '1', Read '1'
+Address 0x0de00: Wrote '1', Read '1'
+Address 0x0df00: Wrote '1', Read '1'
+Address 0x0e000: Wrote '1', Read '1'
+Address 0x0e100: Wrote '1', Read '1'
+Address 0x0e200: Wrote '1', Read '1'
+Address 0x0e300: Wrote '1', Read '1'
+Address 0x0e400: Wrote '1', Read '1'
+Address 0x0e500: Wrote '1', Read '1'
+Address 0x0e600: Wrote '1', Read '1'
+Address 0x0e700: Wrote '1', Read '1'
+Address 0x0e800: Wrote '1', Read '1'
+Address 0x0e900: Wrote '1', Read '1'
+Address 0x0ea00: Wrote '1', Read '1'
+Address 0x0eb00: Wrote '1', Read '1'
+Address 0x0ec00: Wrote '1', Read '1'
+Address 0x0ed00: Wrote '1', Read '1'
+Address 0x0ee00: Wrote '1', Read '1'
+Address 0x0ef00: Wrote '1', Read '1'
+Address 0x0f000: Wrote '1', Read '1'
+Address 0x0f100: Wrote '1', Read '1'
+Address 0x0f200: Wrote '1', Read '1'
+Address 0x0f300: Wrote '1', Read '1'
+Address 0x0f400: Wrote '1', Read '1'
+Address 0x0f500: Wrote '1', Read '1'
+Address 0x0f600: Wrote '1', Read '1'
+Address 0x0f700: Wrote '1', Read '1'
+Address 0x0f800: Wrote '1', Read '1'
+Address 0x0f900: Wrote '1', Read '1'
+Address 0x0fa00: Wrote '1', Read '1'
+Address 0x0fb00: Wrote '1', Read '1'
+Address 0x0fc00: Wrote '1', Read '1'
+Address 0x0fd00: Wrote '1', Read '1'
+Address 0x0fe00: Wrote '1', Read '1'
+Address 0x0ff00: Wrote '1', Read '1'
+Address 0x10000: Wrote '1', Read '1'
+Address 0x10100: Wrote '1', Read '1'
+Address 0x10200: Wrote '1', Read '1'
+Address 0x10300: Wrote '1', Read '1'
+Address 0x10400: Wrote '1', Read '1'
+Address 0x10500: Wrote '1', Read '1'
+Address 0x10600: Wrote '1', Read '1'
+Address 0x10700: Wrote '1', Read '1'
+Address 0x10800: Wrote '1', Read '1'
+Address 0x10900: Wrote '1', Read '1'
+Address 0x10a00: Wrote '1', Read '1'
+Address 0x10b00: Wrote '1', Read '1'
+Address 0x10c00: Wrote '1', Read '1'
+Address 0x10d00: Wrote '1', Read '1'
+Address 0x10e00: Wrote '1', Read '1'
+Address 0x10f00: Wrote '1', Read '1'
+Address 0x11000: Wrote '1', Read '1'
+Address 0x11100: Wrote '1', Read '1'
+Address 0x11200: Wrote '1', Read '1'
+Address 0x11300: Wrote '1', Read '1'
+Address 0x11400: Wrote '1', Read '1'
+Address 0x11500: Wrote '1', Read '1'
+Address 0x11600: Wrote '1', Read '1'
+Address 0x11700: Wrote '1', Read '1'
+Address 0x11800: Wrote '1', Read '1'
+Address 0x11900: Wrote '1', Read '1'
+Address 0x11a00: Wrote '1', Read '1'
+Address 0x11b00: Wrote '1', Read '1'
+Address 0x11c00: Wrote '1', Read '1'
+Address 0x11d00: Wrote '1', Read '1'
+Address 0x11e00: Wrote '1', Read '1'
+Address 0x11f00: Wrote '1', Read '1'
+Address 0x12000: Wrote '1', Read '1'
+Address 0x12100: Wrote '1', Read '1'
+Address 0x12200: Wrote '1', Read '1'
+Address 0x12300: Wrote '1', Read '1'
+Address 0x12400: Wrote '1', Read '1'
+Address 0x12500: Wrote '1', Read '1'
+Address 0x12600: Wrote '1', Read '1'
+Address 0x12700: Wrote '1', Read '1'
+Address 0x12800: Wrote '1', Read '1'
+Address 0x12900: Wrote '1', Read '1'
+Address 0x12a00: Wrote '1', Read '1'
+Address 0x12b00: Wrote '1', Read '1'
+Address 0x12c00: Wrote '1', Read '1'
+Address 0x12d00: Wrote '1', Read '1'
+Address 0x12e00: Wrote '1', Read '1'
+Address 0x12f00: Wrote '1', Read '1'
+Address 0x13000: Wrote '1', Read '1'
+Address 0x13100: Wrote '1', Read '1'
+Address 0x13200: Wrote '1', Read '1'
+Address 0x13300: Wrote '1', Read '1'
+Address 0x13400: Wrote '1', Read '1'
+Address 0x13500: Wrote '1', Read '1'
+Address 0x13600: Wrote '1', Read '1'
+Address 0x13700: Wrote '1', Read '1'
+Address 0x13800: Wrote '1', Read '1'
+Address 0x13900: Wrote '1', Read '1'
+Address 0x13a00: Wrote '1', Read '1'
+Address 0x13b00: Wrote '1', Read '1'
+Address 0x13c00: Wrote '1', Read '1'
+Address 0x13d00: Wrote '1', Read '1'
+Address 0x13e00: Wrote '1', Read '1'
+Address 0x13f00: Wrote '1', Read '1'
+Address 0x14000: Wrote '1', Read '1'
+Address 0x14100: Wrote '1', Read '1'
+Address 0x14200: Wrote '1', Read '1'
+Address 0x14300: Wrote '1', Read '1'
+Address 0x14400: Wrote '1', Read '1'
+Address 0x14500: Wrote '1', Read '1'
+Address 0x14600: Wrote '1', Read '1'
+Address 0x14700: Wrote '1', Read '1'
+Address 0x14800: Wrote '1', Read '1'
+Address 0x14900: Wrote '1', Read '1'
+Address 0x14a00: Wrote '1', Read '1'
+Address 0x14b00: Wrote '1', Read '1'
+Address 0x14c00: Wrote '1', Read '1'
+Address 0x14d00: Wrote '1', Read '1'
+Address 0x14e00: Wrote '1', Read '1'
+Address 0x14f00: Wrote '1', Read '1'
+Address 0x15000: Wrote '1', Read '1'
+Address 0x15100: Wrote '1', Read '1'
+Address 0x15200: Wrote '1', Read '1'
+Address 0x15300: Wrote '1', Read '1'
+Address 0x15400: Wrote '1', Read '1'
+Address 0x15500: Wrote '1', Read '1'
+Address 0x15600: Wrote '1', Read '1'
+Address 0x15700: Wrote '1', Read '1'
+Address 0x15800: Wrote '1', Read '1'
+Address 0x15900: Wrote '1', Read '1'
+Address 0x15a00: Wrote '1', Read '1'
+Address 0x15b00: Wrote '1', Read '1'
+Address 0x15c00: Wrote '1', Read '1'
+Address 0x15d00: Wrote '1', Read '1'
+Address 0x15e00: Wrote '1', Read '1'
+Address 0x15f00: Wrote '1', Read '1'
+Address 0x16000: Wrote '1', Read '1'
+Address 0x16100: Wrote '1', Read '1'
+Address 0x16200: Wrote '1', Read '1'
+Address 0x16300: Wrote '1', Read '1'
+Address 0x16400: Wrote '1', Read '1'
+Address 0x16500: Wrote '1', Read '1'
+Address 0x16600: Wrote '1', Read '1'
+Address 0x16700: Wrote '1', Read '1'
+Address 0x16800: Wrote '1', Read '1'
+Address 0x16900: Wrote '1', Read '1'
+Address 0x16a00: Wrote '1', Read '1'
+Address 0x16b00: Wrote '1', Read '1'
+Address 0x16c00: Wrote '1', Read '1'
+Address 0x16d00: Wrote '1', Read '1'
+Address 0x16e00: Wrote '1', Read '1'
+Address 0x16f00: Wrote '1', Read '1'
+Address 0x17000: Wrote '1', Read '1'
+Address 0x17100: Wrote '1', Read '1'
+Address 0x17200: Wrote '1', Read '1'
+Address 0x17300: Wrote '1', Read '1'
+Address 0x17400: Wrote '1', Read '1'
+Address 0x17500: Wrote '1', Read '1'
+Address 0x17600: Wrote '1', Read '1'
+Address 0x17700: Wrote '1', Read '1'
+Address 0x17800: Wrote '1', Read '1'
+Address 0x17900: Wrote '1', Read '1'
+Address 0x17a00: Wrote '1', Read '1'
+Address 0x17b00: Wrote '1', Read '1'
+Address 0x17c00: Wrote '1', Read '1'
+Address 0x17d00: Wrote '1', Read '1'
+Address 0x17e00: Wrote '1', Read '1'
+Address 0x17f00: Wrote '1', Read '1'
+Address 0x18000: Wrote '1', Read '1'
+Address 0x18100: Wrote '1', Read '1'
+Address 0x18200: Wrote '1', Read '1'
+Address 0x18300: Wrote '1', Read '1'
+Address 0x18400: Wrote '1', Read '1'
+Address 0x18500: Wrote '1', Read '1'
+Address 0x18600: Wrote '1', Read '1'
+Address 0x18700: Wrote '1', Read '1'
+Address 0x18800: Wrote '1', Read '1'
+Address 0x18900: Wrote '1', Read '1'
+Address 0x18a00: Wrote '1', Read '1'
+Address 0x18b00: Wrote '1', Read '1'
+Address 0x18c00: Wrote '1', Read '1'
+Address 0x18d00: Wrote '1', Read '1'
+Address 0x18e00: Wrote '1', Read '1'
+Address 0x18f00: Wrote '1', Read '1'
+Address 0x19000: Wrote '1', Read '1'
+Address 0x19100: Wrote '1', Read '1'
+Address 0x19200: Wrote '1', Read '1'
+Address 0x19300: Wrote '1', Read '1'
+Address 0x19400: Wrote '1', Read '1'
+Address 0x19500: Wrote '1', Read '1'
+Address 0x19600: Wrote '1', Read '1'
+Address 0x19700: Wrote '1', Read '1'
+Address 0x19800: Wrote '1', Read '1'
+Address 0x19900: Wrote '1', Read '1'
+Address 0x19a00: Wrote '1', Read '1'
+Address 0x19b00: Wrote '1', Read '1'
+Address 0x19c00: Wrote '1', Read '1'
+Address 0x19d00: Wrote '1', Read '1'
+Address 0x19e00: Wrote '1', Read '1'
+Address 0x19f00: Wrote '1', Read '1'
+Address 0x1a000: Wrote '1', Read '1'
+Address 0x1a100: Wrote '1', Read '1'
+Address 0x1a200: Wrote '1', Read '1'
+Address 0x1a300: Wrote '1', Read '1'
+Address 0x1a400: Wrote '1', Read '1'
+Address 0x1a500: Wrote '1', Read '1'
+Address 0x1a600: Wrote '1', Read '1'
+Address 0x1a700: Wrote '1', Read '1'
+Address 0x1a800: Wrote '1', Read '1'
+Address 0x1a900: Wrote '1', Read '1'
+Address 0x1aa00: Wrote '1', Read '1'
+Address 0x1ab00: Wrote '1', Read '1'
+Address 0x1ac00: Wrote '1', Read '1'
+Address 0x1ad00: Wrote '1', Read '1'
+Address 0x1ae00: Wrote '1', Read '1'
+Address 0x1af00: Wrote '1', Read '1'
+Address 0x1b000: Wrote '1', Read '1'
+Address 0x1b100: Wrote '1', Read '1'
+Address 0x1b200: Wrote '1', Read '1'
+Address 0x1b300: Wrote '1', Read '1'
+Address 0x1b400: Wrote '1', Read '1'
+Address 0x1b500: Wrote '1', Read '1'
+Address 0x1b600: Wrote '1', Read '1'
+Address 0x1b700: Wrote '1', Read '1'
+Address 0x1b800: Wrote '1', Read '1'
+Address 0x1b900: Wrote '1', Read '1'
+Address 0x1ba00: Wrote '1', Read '1'
+Address 0x1bb00: Wrote '1', Read '1'
+Address 0x1bc00: Wrote '1', Read '1'
+Address 0x1bd00: Wrote '1', Read '1'
+Address 0x1be00: Wrote '1', Read '1'
+Address 0x1bf00: Wrote '1', Read '1'
+Address 0x1c000: Wrote '1', Read '1'
+Address 0x1c100: Wrote '1', Read '1'
+Address 0x1c200: Wrote '1', Read '1'
+Address 0x1c300: Wrote '1', Read '1'
+Address 0x1c400: Wrote '1', Read '1'
+Address 0x1c500: Wrote '1', Read '1'
+Address 0x1c600: Wrote '1', Read '1'
+Address 0x1c700: Wrote '1', Read '1'
+Address 0x1c800: Wrote '1', Read '1'
+Address 0x1c900: Wrote '1', Read '1'
+Address 0x1ca00: Wrote '1', Read '1'
+Address 0x1cb00: Wrote '1', Read '1'
+Address 0x1cc00: Wrote '1', Read '1'
+Address 0x1cd00: Wrote '1', Read '1'
+Address 0x1ce00: Wrote '1', Read '1'
+Address 0x1cf00: Wrote '1', Read '1'
+Address 0x1d000: Wrote '1', Read '1'
+Address 0x1d100: Wrote '1', Read '1'
+Address 0x1d200: Wrote '1', Read '1'
+Address 0x1d300: Wrote '1', Read '1'
+Address 0x1d400: Wrote '1', Read '1'
+Address 0x1d500: Wrote '1', Read '1'
+Address 0x1d600: Wrote '1', Read '1'
+Address 0x1d700: Wrote '1', Read '1'
+Address 0x1d800: Wrote '1', Read '1'
+Address 0x1d900: Wrote '1', Read '1'
+Address 0x1da00: Wrote '1', Read '1'
+Address 0x1db00: Wrote '1', Read '1'
+Address 0x1dc00: Wrote '1', Read '1'
+Address 0x1dd00: Wrote '1', Read '1'
+Address 0x1de00: Wrote '1', Read '1'
+Address 0x1df00: Wrote '1', Read '1'
+Address 0x1e000: Wrote '1', Read '1'
+Address 0x1e100: Wrote '1', Read '1'
+Address 0x1e200: Wrote '1', Read '1'
+Address 0x1e300: Wrote '1', Read '1'
+Address 0x1e400: Wrote '1', Read '1'
+Address 0x1e500: Wrote '1', Read '1'
+Address 0x1e600: Wrote '1', Read '1'
+Address 0x1e700: Wrote '1', Read '1'
+Address 0x1e800: Wrote '1', Read '1'
+Address 0x1e900: Wrote '1', Read '1'
+Address 0x1ea00: Wrote '1', Read '1'
+Address 0x1eb00: Wrote '1', Read '1'
+Address 0x1ec00: Wrote '1', Read '1'
+Address 0x1ed00: Wrote '1', Read '1'
+Address 0x1ee00: Wrote '1', Read '1'
+Address 0x1ef00: Wrote '1', Read '1'
+Address 0x1f000: Wrote '1', Read '1'
+Address 0x1f100: Wrote '1', Read '1'
+Address 0x1f200: Wrote '1', Read '1'
+Address 0x1f300: Wrote '1', Read '1'
+Address 0x1f400: Wrote '1', Read '1'
+Address 0x1f500: Wrote '1', Read '1'
+Address 0x1f600: Wrote '1', Read '1'
+Address 0x1f700: Wrote '1', Read '1'
+Address 0x1f800: Wrote '1', Read '1'
+Address 0x1f900: Wrote '1', Read '1'
+Address 0x1fa00: Wrote '1', Read '1'
+Address 0x1fb00: Wrote '1', Read '1'
+Address 0x1fc00: Wrote '1', Read '1'
+Address 0x1fd00: Wrote '1', Read '1'
+Address 0x1fe00: Wrote '1', Read '1'
+Address 0x1ff00: Wrote '1', Read '1'
+Successfully write and verified 131072 bytes to EEPROM in 512 pages.
+root@am437x-evm:~# 
+
+
+
+root@am437x-evm:~# insmod /lib/modules/at25.ko 
+[  125.225960] at25 spi1.0: 128 KByte at25 eeprom, pagesize 256 
+root@am437x-evm:~# 
+root@am437x-evm:~# 
+root@am437x-evm:~# 
+root@am437x-evm:~# ./ee1char
+(I) Open device OK
+(I) Write OK : Hi,this is an eeprom test. len = 26 
+(I) Read OK
+>>
+ 48=H 69=i 2c=, 74=t 68=h 69=i 73=s 20=  69=i 73=s 20=  61=a 6e=n 20=  65=e 65=e
+ 70=p 72=r 6f=o 6d=m 20=  74=t 65=e 73=s 74=t 2e=.
+Read finish
+*** stack smashing detected ***: <unknown> terminated
+Aborted (core dumped)
+
+
+
+
+root@am437x-evm:~# ./eeHchar 
+(I) Open device OK
+(I) Write OK : Hi,this is an eeprom test. len = 26 
+(I) Read OK
+>>
+ 48=H 69=i 2c=, 74=t 68=h 69=i 73=s 20=  69=i 73=s 20=  61=a 6e=n 20=  65=e 65=e
+ 70=p 72=r 6f=o 6d=m 20=  74=t 65=e 73=s 74=t 2e=.
+Read finish
+*** stack smashing detected ***: <unknown> terminated
+Aborted (core dumped)
+
+
+
+insmod /lib/modules/at25.ko 
+
+root@am437x-evm:/lib/modules# insmod at25.ko
+[  542.632941] at25 spi1.0: 32 KByte at25 eeprom, pagesize 64
+root@am437x-evm:/lib/modules# 
+root@am437x-evm:/lib/modules# lsmod
+Module                  Size  Used by
+at25                   16384  0
+prueth                 65536  0
+irq_pruss_intc         16384  2
+icss_iep               24576  1 prueth
+pru_rproc              24576  1 prueth
+pruss                  16384  2 pru_rproc,prueth
+hsr                    57344  1 prueth
+root@am437x-evm:/lib/modules# 
+
+
+
+arm-linux-gnueabihf-gcc
+
+[    3.898693] Zumi : __mdiobus_register : 553 Getting GPIO Reset pin details
+[    3.898968] Kemsys : get_phy_c22_id 794 
+[    3.898988] Kemsys : get_phy_c22_id 794 
+[    3.899000] Kemsys : get_phy_c22_id 794 
+
+drivers/net/phy/phy_device.c:        printk("Kemsys : %s %d \r\n", __func__, __LINE__);
+drivers/net/phy/phy_device.c:        printk("Kemsys : %s %d \r\n", __func__, __LINE__);
+drivers/net/phy/phylink.c:                        printk("Kemsys : %s %d \r\n", __func__, __LINE__);
+
+
+root@am437x-evm:~# ./spitest -D /dev/spidev1.0 -b 8 -p "1234566"
+spi mode: 0x0
+bits per word: 8
+max speed: 500000 Hz (500 kHz)
+root@am437x-evm:~# ./spitest -D /dev/spidev1.0 -b 8 -p "1234566"
+spi mode: 0x0
+bits per word: 8
+max speed: 500000 Hz (500 kHz)
+root@am437x-evm:~# ./spitest -D /dev/spidev1.0 -b 8 -p "1234566"
+spi mode: 0x0
+bits per word: 8
+max speed: 500000 Hz (500 kHz)
+root@am437x-evm:~# ./spitest -D /dev/spidev1.0 -b 8 -p "1234566"
+spi mode: 0x0
+bits per word: 8
+max speed: 500000 Hz (500 kHz)
+root@am437x-evm:~# ./spitest -D /dev/spidev1.0 -b 8 -p "1234566"------> clock ok
+
+
+
+root@am437x-evm:~# ./spitest -D /dev/spidev1.0 -v
+spi mode: 0x0
+bits per word: 8
+max speed: 500000 Hz (500 kHz)
+TX | FF FF FF FF FF FF 40 00 00 00 00 95 FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF F0 0D  |......@.........................|
+RX | 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  |................................|
+root@am437x-evm:~# ./spitest -D /dev/spidev1.0 -v
+
+
+
+
+/etc/init.d/networking restart
+systemctl restart networking
+
+
+
+root@am437x-evm:~# cat config_phy_reset.sh
+echo 29 > /sys/class/gpio/export
+echo 45 > /sys/class/gpio/export
+echo out > /sys/class/gpio/gpio29/direction 
+echo 0 > /sys/class/gpio/gpio29/value
+sleep 1
+echo 1 > /sys/class/gpio/gpio29/valuefa
+echo out > /sys/class/gpio/gpio45/direction 
+echo 0 > /sys/class/gpio/gpio45/value
+sleep 1
+echo 1 > /sys/class/gpio/gpio45/value
+
+sudo umount /dev/sdb2
+sudo fsck -y /dev/sdb2
+	
+
+root@am437x-evm:~# cat reset_phy.sh                                                                                                           
+#!/bin/sh
+
+rmmod pruss
+sleep 1
+echo 0 > /sys/class/gpio/gpio45/value
+sleep 1
+echo 1 > /sys/class/gpio/gpio45/value 
+
+echo 0 > /sys/class/gpio/gpio29/value
+sleep 1
+echo 1 > /sys/class/gpio/gpio29/value 
+sleep 1
+insmod /lib/modules/pruss.ko
+
+
+
+
+root@am437x-evm:~# cat reset_phy.sh                                                                                                           
+#!/bin/sh
+
+rmmod pruss
+sleep 1
+echo 0 > /sys/class/gpio/gpio45/value
+sleep 1
+echo 1 > /sys/class/gpio/gpio45/value 
+
+echo 0 > /sys/class/gpio/gpio29/value
+sleep 1
+echo 1 > /sys/class/gpio/gpio29/value 
+sleep 1
+insmod /lib/modules/pruss.ko
+
+
+
+git status
+git add
+git commit -sm "board.c"
+
+git config --global user.name "Zaid"
+git config --global user.email "zaid@kemsys.com"
+
+git format-patch --no-numbered -1
+
+git log --oneline
+
+git reset --hard HEAD^1
+
+
+	patch -p1  < 0001-am43xx_hs_evm_defconfig.patch
+
+
+
+
+dev	size	Offset	name	Remarks
+mtd0	0x40000 	0x00000	NAND.SPL	        USED
+mtd1	0x40000 	0x40000	NAND.SPL.backup1	USED
+mtd2	0x40000	0x80000	NAND.SPL.backup2	USED - for the NAND.SPL backup
+mtd3	0x40000	0xc0000	NAND.SPL.backup3	Not Used
+mtd4	0x200000	0x100000	NAND.u-boot-1	        Not Used
+mtd5	0x700000	0x300000	NAND.kernel-1   	USED
+mtd6	0x15600000	0xA00000	NAND.file-system-1	USED
+mtd7	0x200000 	0x16000000	NAND.u-boot-2   	USED
+mtd8	0x700000	0x16200000	NAND.kernel-2  	USED
+mtd9	0x3200000	0x16900000	NAND.file-system-2	USED
+mtd10	0x100000	0x19B00000	NAND.sw-env	    USED
+mtd11	0x6400000	0x19C00000	NAND.Application	Application Propose
+
+
+
+/*
+
+dev     size            Offset          name    
+mtd0    0x00040000      0x00000000      NAND.SPL              
+mtd1    0x00040000      0x00040000      NAND.SPL.backup1        
+mtd2    0x00040000      0x00080000      NAND.SPL.backup2        
+mtd3    0x00040000      0x000c0000      NAND.SPL.backup3        
+mtd4    0x00200000      0x00100000      NAND.u-boot-1         
+mtd5    0x00700000      0x00300000      NAND.kernel-1           
+mtd6    0x15600000      0x00A00000      NAND.file-system-1      
+mtd7    0x00200000      0x16000000      NAND.u-boot-2           
+mtd8    0x00700000      0x16200000      NAND.kernel-2  
+mtd9    0x03200000      0x16900000      NAND.file-system-2
+mtd10   0x00100000      0x19B00000      NAND.sw-env         
+mtd11   0x06400000      0x19C00000      NAND.Application
+
+*/
+
+
+
+
+
+
+
+
+
+
+uboot environment set:
+=========================
+
+export CC=/home/zumi/Downloads/Nibin/26Aug2024_ISSI_Executables/ti-u-boot-2023.04+gitAUTOINC+d74d0993e2-gd74d0993e2_TI_KEY_ISSI/gcc-linaro-6.5.0-2018.12-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-
+
+
+Clean up any existing build files in the U-Boot source code:
+---------------------------------------------------------------
+
+make ARCH=arm CROSS_COMPILE=${CC} distclean
+
+Configure the U-Boot build for the AM4376 board:
+-------------------------------------------------------
+
+make ARCH=arm CROSS_COMPILE=${CC} am43xx_evm_defconfig
+
+Compile the U-Boot source code:
+---------------------------------
+
+make ARCH=arm CROSS_COMPILE=${CC} -j8
+
+defconfig:
+========
+
+/home/zumi/Downloads/Nibin/26Aug2024_ISSI_Executables/ti-u-boot-2023.04+gitAUTOINC+d74d0993e2-gd74d0993e2_TI_KEY_ISSI/configs
+
+dts:
+----
+/home/zumi/Downloads/Nibin/26Aug2024_ISSI_Executables/ti-u-boot-2023.04+gitAUTOINC+d74d0993e2-gd74d0993e2_TI_KEY_ISSI/arch/arm/dts
+
+
+
+
+linux :
+=======
+
+
+
+export ARCH=arm
+export CROSS_COMPILE=/home/zumi/gcc-arm-8.3-2019.03-x86_64-arm-linux-gnueabihf/bin/arm-linux-gnueabihf-
+export PATH=/home/zumi/gcc-arm-8.3-2019.03-x86_64-arm-linux-gnueabihf/bin:$PATH  
+ 
+ 
+ make distclean
+
+make tisdk_am437x-evm-rt_defconfig
+
+ make -j8
+ 
+ 
+ 
+ 
+ defconfig:
+ -----------
+ 
+ /home/zumi/Downloads/Nibin/26Aug2024_ISSI_Executables/linux/linux/linux-rt-5.10_isis/linux-rt-5.10_new.100+gitAUTOINC+204ec708dc-g204ec708dc_2may24/linux-rt-5.10_new.100+gitAUTOINC+204ec708dc-g204ec708dc/arch/arm/configs
+
+
+dts:
+
+/home/zumi/Downloads/Nibin/26Aug2024_ISSI_Executables/linux/linux/linux-rt-5.10_isis/linux-rt-5.10_new.100+gitAUTOINC+204ec708dc-g204ec708dc_2may24/linux-rt-5.10_new.100+gitAUTOINC+204ec708dc-g204ec708dc/arch/arm/boot/dts
+
+
+
+
+--------------------------------------------------------------------------------------------------
+
+
+
+
+
+
+ddr test:
+==============
+
+comman/spl/spl.c
+
+
+
+Register value change :
+========================
+
+
+board/ti/am43xx/board.c
+
+
+
+sdcard modify:
+================
+
+
+include/configs/am43xx_evm.h
+
+
+cluster error:
+==============
+
+
+fs/fat/fat.c
+
+
+ubi modify:
+===========
+
+
+zumi@zumi-pc:~/Abinash/AM4376/tisdk/sources/meta-ti/conf/machine$ ls am437x-evm.conf
+am437x-evm.conf
+
+
+manually ubi:
+---------------
+
+
+/home/zumi/Abinash/AM4376/tisdk/build/arago-tmp-external-arm-glibc/deploy/images/am437x-evm/manual
+
+
+
+debug tool:
+===========
+
+
+
+void debug_print(const char* func, int line) {
+    printf("Kemsys Fun: %s Line: %d\r\n", func, line);
+}
+
+// Macro to simplify usage of the debug_print function
+#define p() debug_print(__func__, __LINE__)
+
+
+p();
+
+
+
+
+
+  
+[    4.465799] ubi0: attaching mtd6
+[    5.787951] ubi0: scanning is finished
+[    5.812364] ubi0: attached mtd6 (name "NAND.file-system-1", size 448 MiB)
+[    5.812407] ubi0: PEB size: 262144 bytes (256 KiB), LEB size: 253952 bytes
+[    5.812430] ubi0: min./max. I/O unit sizes: 4096/4096, sub-page size 1024
+[    5.812449] ubi0: VID header offset: 4096 (aligned 4096), data offset: 8192
+[    5.812467] ubi0: good PEBs: 1792, bad PEBs: 0, corrupted PEBs: 0
+[    5.812484] ubi0: user volume: 1, internal volumes: 1, max. volumes count: 128
+[    5.812502] ubi0: max/mean erase counter: 2/0, WL threshold: 4096, image sequence number: 237795758
+[    5.812524] ubi0: available PEBs: 0, total reserved PEBs: 1792, PEBs reserved for bad PEB handling: 80
+[    5.815765] ALSA device list:
+[    5.815789]   No soundcards found.
+[    5.815907] ubi0: background thread "ubi_bgt0d" started, PID 78
+[    5.825553] UBIFS (ubi0:0): Mounting in unauthenticated mode
+[    5.843450] UBIFS (ubi0:0): background thread "ubifs_bgt0_0" started, PID 80
+[    5.968267] UBIFS (ubi0:0): UBIFS: mounted UBI device 0, volume 0, name "rootfs"
+[    5.968315] UBIFS (ubi0:0): LEB size: 253952 bytes (248 KiB), min./max. I/O unit sizes: 4096 bytes/4096 bytes
+[    5.968345] UBIFS (ubi0:0): FS size: 431210496 bytes (411 MiB, 1698 LEBs), journal size 9404416 bytes (8 MiB, 38 LEBs)
+[    5.968379] UBIFS (ubi0:0): reserved for root: 0 bytes (0 KiB)
+[    5.968398] UBIFS (ubi0:0): media format: w4/r0 (latest is w5/r0), UUID 4A227B67-CE7C-4B96-AFF8-D8A0649AD5D1, small LPT model
+[    5.976761] VFS: Mounted root (ubifs filesystem) on device 0:1   
+   
+///ubiattach /dev/ubi_ctrl -m 6
+   
+   root@am437x-evm:~# ubinfo -a
+UBI version:                    1
+Count of UBI devices:           1
+UBI control device major/minor: 10:63
+Present UBI devices:            ubi0
+
+ubi0
+Volumes count:                           1
+Logical eraseblock size:                 253952 bytes, 248.0 KiB
+Total amount of logical eraseblocks:     1792 (455081984 bytes, 434.0 MiB)
+Amount of available logical eraseblocks: 0 (0 bytes)
+Maximum count of volumes                 128
+Count of bad physical eraseblocks:       0
+Count of reserved physical eraseblocks:  80
+Current maximum erase counter value:     2
+Minimum input/output unit size:          4096 bytes
+Character device major/minor:            242:0
+Present volumes:                         0
+
+Volume ID:   0 (on ubi0)
+Type:        dynamic
+Alignment:   1
+Size:        1708 LEBs (433750016 bytes, 413.6 MiB)
+State:       OK
+Name:        rootfs
+Character device major/minor: 242:
+   
+   
+   
+   
+mkfs.ubifs -v -r rootfs -m 4096 -e 253952 -c 1792 -o ubifs.img
+ubinize -o ubi.img -m 4096 -p 256KiB -s 4096 ubinize.cfg
+
+
+ubinize.cfg
+------------
+[rootfs]
+mode=ubi
+vol_id=0
+vol_type=dynamic
+vol_name=rootfs
+vol_size=413MiB
+vol_alignment=1
+vol_flags=autoresize
+  
+
+
+
+root@am437x-evm:~# ubiattach /dev/ubi_ctrl -m 9
+[  294.405345] ubi0: attaching mtd9
+[  295.581204] ubi0: scanning is finished
+[  295.581248] ubi0: empty MTD device detected
+UBI device number 0, total 4016 LEBs (518160384 bytes, 494.1 MiB), available 3932 LEBs (507322368 bytes, 483.8 MiB), LEB size 12[  295.623559)
+9024 bytes (126.0 KiB)
+[  295.623609] ubi0: PEB size: 131072 bytes (128 KiB), LEB size: 129024 bytes
+root@am437x-evm:~# [  295.623632] ubi0: min./max. I/O unit sizes: 2048/2048, sub-page size 512
+[  295.623652] ubi0: VID header offset: 512 (aligned 512), data offset: 2048
+[  295.623669] ubi0: good PEBs: 4016, bad PEBs: 0, corrupted PEBs: 0
+[  295.623687] ubi0: user volume: 0, internal volumes: 1, max. volumes count: 128
+[  295.623705] ubi0: max/mean erase counter: 0/0, WL threshold: 4096, image sequence number: 1781497900
+[  295.623727] ubi0: available PEBs: 3932, total reserved PEBs: 84, PEBs reserved for bad PEB handling: 80
+[  295.627035] ubi0: background thread "ubi_bgt0d" started, PID 720
+
+
+
+mkfs.ubifs -v -r rootfs -m 2048 -e 129024 -c 3932 -o ubifs.imgmm
+
+
+https://e2e.ti.com/support/processors-group/processors/f/processors-forum/1269613/ti-am4376-pru-detection-issue-with-rt-linux-sdk-8-2-0024-and-bridging-mrp-issue?tisearch=e2e-sitesearch&keymatch=RIO-DEV-PLATFORM
+
+
+
+drwxrwxrwx    3 1000     1000           872 Jun 24  2024 home
+lrwxrwxrwx    1 1000     1000            20 Jun 20  2024 init -> ex:/lib/systemd/systemd
+drwxrwxrwx    9 1000     1000          7032 Dec 15  2023 lib
+lrwxrwxrwx    1 1000     1000            19 Jun 20  2024 linuxrc -> ex:/bin/busybox.nosuid
+drwxrwxrwx    3 1000     1000           224 Dec 15  2023 media
+drwxrwxrwx    2 1000     1000           160 Dec 15  2023 mnt
+
+ln -s 
+
+ln -s /lib/systemd/systemd /home/init
+
+
+ln -s /bin/busybox.nosuid /linuxrc
+
+
+
+final:
+-------
+[    1.753259] Creating 10 MTD partitions on "omap2-nand.0":
+[    1.758735] 0x000000000000-0x000000040000 : "NAND.SPL"
+[    1.766646] 0x000000040000-0x000000080000 : "NAND.SPL.backup1"
+[    1.775160] 0x000000080000-0x0000000c0000 : "NAND.SPL.backup2"
+[    1.783723] 0x0000000c0000-0x000000100000 : "NAND.SPL.backup3"
+[    1.792167] 0x000000100000-0x000000180000 : "NAND.u-boot-spl-os"
+[    1.800834] 0x000000180000-0x000000280000 : "NAND.u-boot"
+[    1.808961] 0x000000280000-0x0000002c0000 : "NAND.u-boot-env"
+[    1.817323] 0x0000002c0000-0x000000300000 : "NAND.u-boot-env.backup1"
+[    1.826454] 0x000000300000-0x000000a00000 : "NAND.kernel"
+[    1.835287] 0x000000a00000-0x000020000000 : "NAND.file-system"
+
+
+
+root@am437x-evm:~# ubiattach /dev/ubi_ctrl -m 9
+[  294.405345] ubi0: attaching mtd9
+[  295.581204] ubi0: scanning is finished
+[  295.581248] ubi0: empty MTD device detected
+UBI device number 0, total 4016 LEBs (518160384 bytes, 494.1 MiB), available 3932 LEBs (507322368 bytes, 483.8 MiB), LEB size 12[  295.623559)
+9024 bytes (126.0 KiB)
+[  295.623609] ubi0: PEB size: 131072 bytes (128 KiB), LEB size: 129024 bytes
+root@am437x-evm:~# [  295.623632] ubi0: min./max. I/O unit sizes: 2048/2048, sub-page size 512
+[  295.623652] ubi0: VID header offset: 512 (aligned 512), data offset: 2048
+[  295.623669] ubi0: good PEBs: 4016, bad PEBs: 0, corrupted PEBs: 0
+[  295.623687] ubi0: user volume: 0, internal volumes: 1, max. volumes count: 128
+[  295.623705] ubi0: max/mean erase counter: 0/0, WL threshold: 4096, image sequence number: 1781497900
+[  295.623727] ubi0: available PEBs: 3932, total reserved PEBs: 84, PEBs reserved for bad PEB handling: 80
+[  295.627035] ubi0: background thread "ubi_bgt0d" started, PID 720
+
+
+
+mkfs.ubifs -v -r rootfs -m 2048 -e 129024 -c 3932 -o ubifs.imgmm
+
+sudo mkfs.ubifs -r /home/zumi/Abinash/AM4376/tisdk/build/arago-tmp-external-arm-glibc/deploy/images/am437x-evm/manual/rootfs -o rootfs.ubifs -F -m 2048 -e 126976 -c 3932
+sudo ubinize -o rootfs.ubi -m 2048 -p 128KiB -s 512 -O 2048 ubinize.cfg
+split -n 4 rootfs.ubi split1/ubi_
+cp split/ubi_a* /media/zumi/Zumi/
+umount /media/zumi/Zumi 
+
+
+ubinize.cfg
+[ubifs]
+mode=ubi
+image=rootfs.ubifs
+vol_id=0
+vol_size=483MiB
+vol_type=dynamic
+vol_name=rootfs
+vol_alignment=1
+vol_flags=autoresize
+
+
+
+
+
+sudo mkfs.ubifs -r /home/zumi/karthi/1gbrootfs/rootfs -o rootfs.ubifs -F -m 2048 -e 126976 -c 3932
+
+sudo ubinize -o rootfs.ubi -m 2048 -p 128KiB -s 512 -O 2048 ubinize.cfg
+
+split -n 4 rootfs.ubi split/ubi_
+
+
+sudo mkfs.ubifs -r /home/zumi/karthi/1gbrootfs -o rootfs.ubifs -F -m 2048 -e 126976 -c 3932
+
+
+
+ubi_aa
+82D88000
+
+
+set nandroot "/dev/mmcblk0p2 rw"
+set nandrootfstype "ext4 rootwait"
+
+
+
+
+fatload mmc 0:1 0x82000000 ubi_aa
+fatload mmc 0:1 0x82D88000 ubi_ab
+fatload mmc 0:1 0x83B10000 ubi_ac
+fatload mmc 0:1 0x84898000 ubi_ad
+
+
+
+
+fatload mmc 0:1 0x82000000 ubi_aa
+fatload mmc 0:1 0x87918000 ubi_ab
+fatload mmc 0:1 0x8D230000 ubi_ac
+fatload mmc 0:1 0x92B48000 ubi_ad
+
+
+
+
+fatload mmc 0:1 0x82000000 1_aa
+fatload mmc 0:1 0x851F0000 1_ab
+fatload mmc 0:1 0x883E0000 1_ac
+fatload mmc 0:1 0x8B5D0000 1_ad
+
+
+
+root@zumi:/home/zumi/Downloads/Nibin/26Aug2024_ISSI_Executables/ti-u-boot-2023.04+gitAUTOINC+d74d0993e2-gd74d0993e2_TI_KEY_ISSI# 
+
+root@zumi:/home/zumi/Downloads/Nibin/26Aug2024_ISSI_Executables/linux/linux/linux-rt-5.10_isis/linux-rt-5.10_new.100+gitAUTOINC+204ec708dc-g204ec708dc_2may24/linux-rt-5.10_new.100+gitAUTOINC+204ec708dc-g204ec708dc#
+
+
+
+export CC=/home/zumi/Downloads/Nibin/26Aug2024_ISSI_Executables/ti-u-boot-2023.04+gitAUTOINC+d74d0993e2-gd74d0993e2_TI_KEY_ISSI/gcc-linaro-6.5.0-2018.12-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-
+
+
+
+
+unzip 0x82000000 0x83000000
+
+
+
+fatls mmc 0:1
+
+fatload mmc 0:1 0x82000000 MLO
+
+
+nand write 0x82000000 NAND.SPL 0x26953
+
+
+fatload mmc 0:1 0x82000000 u-boot.img
+
+
+nand write 0x82000000 NAND.u-boot 0xc7aa0
+
+
+fatload mmc 0:1 0x82000000 fitImage.itb
+
+nand write 0x82000000 NAND.kernel  0x4876f6
+
+
+nand write 0x82000000 NAND.kernel  0x4cdbb42
+
+
+
+
+fatload mmc 0:1 0x82000000 rootfs.ubi
+
+
+nand write 0x82000000 NAND.file-system 0x3620000
+
+
+nand erase.chip
+
+
+nand erase.part NAND.SPL
+nand erase.part NAND.u-boot
+nand erase.part NAND.kernel
+nand erase.part NAND.u-boot-spl-os
+nand erase.part NAND.file-system
+
+
+
+
+
+set nandrootfstype "ubifs rootwait"
+
+set nandroot "ubi0:rootfs rw ubi.mtd=NAND.file-system,2048"
+
+
+
+sudo mkfs.ubifs -r /home/zumi/Abinash/AM4376/tisdk/build/arago-tmp-external-arm-glibc/deploy/images/am437x-evm/manual/rootfs -o rootfs.ubifs -F -m 2048 -e 129024  -c 4800 --space-fixup
+sudo ubinize -o rootfs.ubi -m 2048 -p 128KiB -s 512 -O 512 ubinize.cfg
+
+
+
+ split -n 4 rootfs.ubi split/1_
+
+
+
+fatload mmc 0:1 0x82000000 ubi_aa  
+fatload mmc 0:1 0x82DE0000 ubi_ab  
+fatload mmc 0:1 0x83BC0000 ubi_ac  
+fatload mmc 0:1 0x849A0000 ubi_ad 
+
+
+
+
+fatload mmc 0:1 0x82000000 1_aa
+fatload mmc 0:1 0x851F0000 1_ab
+fatload mmc 0:1 0x883E0000 1_ac
+fatload mmc 0:1 0x8B5D0000 1_ad
+
+
+
+root@zumi:/home/zumi/Downloads/Nibin/26Aug2024_ISSI_Executables/ti-u-boot-2023.04+gitAUTOINC+d74d0993e2-gd74d0993e2_TI_KEY_ISSI# 
+
+root@zumi:/home/zumi/Downloads/Nibin/26Aug2024_ISSI_Executables/linux/linux/linux-rt-5.10_isis/linux-rt-5.10_new.100+gitAUTOINC+204ec708dc-g204ec708dc_2may24/linux-rt-5.10_new.100+gitAUTOINC+204ec708dc-g204ec708dc#
+
+
+
+export CC=/home/zumi/Downloads/Nibin/26Aug2024_ISSI_Executables/ti-u-boot-2023.04+gitAUTOINC+d74d0993e2-gd74d0993e2_TI_KEY_ISSI/gcc-linaro-6.5.0-2018.12-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-
+
+
+
+
+unzip 0x82000000 0x83000000
+
+
+
+fatls mmc 0:1
+
+fatload mmc 0:1 0x82000000 MLO
+
+
+nand write 0x82000000 NAND.SPL 0x26953
+
+
+fatload mmc 0:1 0x82000000 u-boot.img
+
+
+nand write 0x82000000 NAND.u-boot 0xc7aa0
+
+
+fatload mmc 0:1 0x82000000 fitImage.itb
+
+
+nand write 0x82000000 NAND.kernel  0x4d1b92
+
+
+fatload mmc 0:1 0x83000000 rx.ubi.gz
+
+
+nand write 0x82000000 NAND.file-system-2 0xc7c0000
+
+
+nand erase.chip
+
+
+nand erase.part NAND.SPL
+nand erase.part NAND.u-boot
+nand erase.part NAND.kernel
+nand erase.part NAND.u-boot-spl-os
+nand erase.part NAND.file-system
+
+
+
+
+zumi@zumi:/media/zumi/8191-260B$ ls -l
+total 5872
+-rw-r--r-- 1 zumi zumi 5036190 Jan 21 21:29 fitImage.itb
+-rw-r--r-- 1 zumi zumi  156991 Jan 21 22:01 MLO
+-rw-r--r-- 1 zumi zumi  811436 Jan 21 22:01 u-boot.img
+zumi@zumi:/media/zumi/8191-260B$ 
+
+
+zumi@zumi:~/abi/Test_Binary/Sdboot/SdMax_As_Usual$ ls -l
+total 5904
+-rw-r--r-- 1 zumi zumi 5036190 Jan 21 21:29 fitImage.itb
+-rw-r--r-- 1 root root  156991 Jan 21 22:01 MLO
+-rw-rw-r-- 1 zumi zumi   30195 Jan 22 10:49 SdMax_As_Usual.txt
+-rw-r--r-- 1 root root  811436 Jan 21 22:01 u-boot.img
+zumi@zumi:~/abi/Test_Binary/Sdboot/SdMax_As_Usual$ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+partition@0 {
+    label = "NAND.SPL";
+    reg = <0x00000000 0x00040000>;  // 0.25 MB for SPL
+};
+
+partition@1 {
+    label = "NAND.SPL.backup1";
+    reg = <0x00040000 0x00040000>;  // 0.25 MB for backup1
+};
+
+partition@2 {
+    label = "NAND.SPL.backup2";
+    reg = <0x00080000 0x00040000>;  // 0.25 MB for backup2
+};
+
+partition@3 {
+    label = "NAND.SPL.backup3";
+    reg = <0x000c0000 0x00040000>;  // 0.25 MB for backup3
+};
+
+partition@4 {
+    label = "NAND.u-boot-1";
+    reg = <0x00100000 0x00200000>;  // 2 MB for uboot1
+};
+
+partition@5 {
+    label = "NAND.kernel-1";
+    reg = <0x00300000 0x00600000>;  // 6 MB for kernel1
+};
+
+partition@6 {
+    label = "NAND.file-system-1";
+    reg = <0x00900000 0x08C00000>;  // 140 MB for file system 1
+};
+
+partition@7 {
+    label = "NAND.u-boot-2";
+    reg = <0x0F200000 0x00200000>;  // 2 MB for uboot2
+};
+
+partition@8 {
+    label = "NAND.kernel-2";
+    reg = <0x0F400000 0x00600000>;  // 6 MB for kernel2
+};
+
+partition@9 {
+    label = "NAND.file-system-2";
+    reg = <0x0FA00000 0x08C00000>;  // 140 MB for file system 2
+};
+
+partition@10 {
+    label = "NAND.Application";
+    reg = <0x19400000 0x02000000>;  // 32 MB for Application
+};
+
+partition@11 {
+    label = "NAND.sw-env";
+    reg = <0x1B600000 0x00200000>;  // 2 MB for software environment
+};
+
+partition@12 {
+    label = "NAND.sw-update";
+    reg = <0x1B800000 0x08000000>;  // 128 MB for software update
+};
+
+
+nand boot ubi error but rootfs boot from sd card
+===================================================
+
+
+1)lsblk
+e.g/dev/sdX (replace X with your actual device).
+
+Create two partitions:
+Partition 1 (FAT32): For bootloader or other files if needed.
+Partition 2 (ext4): For the root filesystem.
+Use fdisk:
+
+2)sudo fdisk /dev/sdb
+
+Press o to create a new partition table.
+Press n to create the first partition.
+Set it to primary, partition number 1, and size (e.g., +100M for 100MB).
+Press t and select c to set the partition type to W95 FAT32 (LBA).
+Press n to create the second partition.
+Set it to primary, partition number 2, and size (use the remaining space).
+Press w to write the changes and exit.
+
+3)
+
+sudo mkfs.vfat -F 32 /dev/sdb1
+sudo mkfs.ext4 /dev/sdb2
+
+sudo mkdir -p /mnt/rootfs1
+sudo mount /dev/sdb1 /mnt/rootfs1
+
+sudo tar -xvf  /home/zumi/Downloads/Nibin/lnt_fs.ubi.tar.gz -C /mnt/rootfs1
+
+
+
+sudo mkdir -p /mnt/rootfs
+sudo mount /dev/sdb2 /mnt/rootfs
+
+sudo tar -xvf  /home/zumi/Downloads/Nibin/tisdk-base-image-am437x-evm-20241111073331.rootfs.tar.xz -C /mnt/rootfs
+
+sudo tar -xvf  /home/zumi/Downloads/Nibin/tisdk-base-image-am437x-evm-20250115134654.rootfs.tar.xz -C /mnt/rootfs
+
+tisdk-base-image-am437x-evm-20241208073618.rootfs.tar.xz
+
+sudo sync
+sudo umount /mnt/rootfs
+
+
+
+SD card:
+=======
+
+
+set nandroot "/dev/mmcblk0p2 rw"
+set nandrootfstype "ext2 rootwait"
+
+
+
+NAND (UBI):
+==========
+
+
+
+
+export TI_SECURE_DEV_PKG=/opt/ti-processor-sdk-linux-am437x-hs-evm-06.03.00.106/board-support/proc-sdk-secdev-am437x-hs-evm-01.06.00.05/scripts/proc-sdk-secdev
+
+
+
+
+wget https://developer.arm.com/-/media/Files/downloads/gnu-a/8.3-2019.03/binrel/gcc-arm-8.3-2019.03-x86_64-arm-linux-gnueabihf.tar.xz
+tar -Jxvf gcc-arm-8.3-2019.03-x86_64-arm-linux-gnueabihf.tar.xz -C $HOME
+
+linux build
+================
+
+
+
+
+
+export ARCH=arm
+export CROSS_COMPILE=/home/zumi/gcc-arm-8.3-2019.03-x86_64-arm-linux-gnueabihf/bin/arm-linux-gnueabihf-
+export PATH=/home/zumi/gcc-arm-8.3-2019.03-x86_64-arm-linux-gnueabihf/bin:$PATH  
+ 
+ 
+ make distclean
+
+make tisdk_am437x-evm-rt_defconfig
+
+ make -j8
+
+
+
+
+
+
+
+
+
+
+
+//zumi          
+/* Get remaining bytes */
+actsize = filesize;
+printf("Attempting to read %d bytes from cluster %d\n", (int)actsize, curclust);
+
+if (get_cluster(mydata, curclust, buffer, (int)actsize) != 0) {
+    p();
+    printf("Error reading cluster %d, remaining size %d bytes\n", curclust, (int)actsize);
+    return -1;
+}
+
+*gotsize += actsize;
+printf("Successfully read %d bytes, total read so far: %d bytes\n", (int)actsize, *gotsize);
+
+return 0;
+//zumi
+
+
+
+
+
+
+
+
+
+log:
+
+
+
+
+
+
+
+
+=>nand erase.chip
+
+NAND erase.chip: device 0 whole chip
+Erasing at 0x1ffe0000 -- 100% complete.
+OK
+=> mmc rescan
+=> fatload mmc 0:1 0x82000000 MLO         
+158035 bytes read in 18 ms (8.4 MiB/s)
+=> nand write 0x82000000 NAND.SPL 0x26953
+
+NAND write: device 0 offset 0x0, size 0x26953
+ 158035 bytes written: OK
+=> fatload mmc 0:1 0x82000000 u-boot.img
+817824 bytes read in 69 ms (11.3 MiB/s)
+=> nand write 0x82000000 NAND.u-boot 0xc7aa0
+
+NAND write: device 0 offset 0x180000, size 0xc7aa0
+ 817824 bytes written: OK
+=> fatload mmc 0:1 0x82000000 fitImage.itb         
+5036946 bytes read in 397 ms (12.1 MiB/s)
+=> nand write 0x82000000 NAND.kernel  0x4cdb92
+
+NAND write: device 0 offset 0x300000, size 0x4cdb92
+ 5036946 bytes written: OK
+=> fatload mmc 0:1 0x82000000 lnt_fs.ubi
+Zumi Fun: get_contents Line: 426
+Error reading cluster
+Failed to load 'lnt_fs.ubi'
+=> 
+
+
+
+
+A70h CTRL_CONF_XDMA_EVT_INTR0 Section 7.3.1.202
+
+88Ch CTRL_CONF_GPMC_CLK Section 7.3.1.81
+
+
+9.3.4.148 EMIF4D_EXT_PHY_CTRL_28 Register (Offset = 2D8h) [reset = 0h]
+
+
+root@am437x-evm:~# zcat /proc/config.gz | grep MTD
+CONFIG_MTD=y
+CONFIG_MTD_TESTS=m
+# CONFIG_MTD_AR7_PARTS is not set
+CONFIG_MTD_CMDLINE_PARTS=y
+CONFIG_MTD_OF_PARTS=y
+# CONFIG_MTD_AFS_PARTS is not set
+# CONFIG_MTD_REDBOOT_PARTS is not set
+CONFIG_MTD_BLKDEVS=y
+CONFIG_MTD_BLOCK=y
+# CONFIG_MTD_OOPS is not set
+# CONFIG_MTD_SWAP is not set
+# CONFIG_MTD_PARTITIONED_MASTER is not set
+CONFIG_MTD_CFI=y
+# CONFIG_MTD_JEDECPROBE is not set
+CONFIG_MTD_GEN_PROBE=y
+# CONFIG_MTD_CFI_ADV_OPTIONS is not set
+CONFIG_MTD_MAP_BANK_WIDTH_1=y
+CONFIG_MTD_MAP_BANK_WIDTH_2=y
+CONFIG_MTD_MAP_BANK_WIDTH_4=y
+CONFIG_MTD_CFI_I1=y
+CONFIG_MTD_CFI_I2=y
+CONFIG_MTD_CFI_INTELEXT=y
+CONFIG_MTD_CFI_AMDSTD=y
+# CONFIG_MTD_CFI_STAA is not set
+CONFIG_MTD_CFI_UTIL=y
+# CONFIG_MTD_RAM is not set
+# CONFIG_MTD_ROM is not set
+# CONFIG_MTD_ABSENT is not set
+CONFIG_MTD_COMPLEX_MAPPINGS=y
+CONFIG_MTD_PHYSMAP=y
+# CONFIG_MTD_PHYSMAP_COMPAT is not set
+CONFIG_MTD_PHYSMAP_OF=y
+# CONFIG_MTD_PHYSMAP_VERSATILE is not set
+# CONFIG_MTD_PHYSMAP_GEMINI is not set
+# CONFIG_MTD_PHYSMAP_IXP4XX is not set
+# CONFIG_MTD_PHYSMAP_GPIO_ADDR is not set
+# CONFIG_MTD_PCI is not set
+# CONFIG_MTD_INTEL_VR_NOR is not set
+# CONFIG_MTD_PLATRAM is not set
+# Self-contained MTD device drivers
+# CONFIG_MTD_PMC551 is not set
+# CONFIG_MTD_DATAFLASH is not set
+# CONFIG_MTD_MCHP23K256 is not set
+# CONFIG_MTD_SST25L is not set
+# CONFIG_MTD_BCM47XXSFLASH is not set
+# CONFIG_MTD_SLRAM is not set
+# CONFIG_MTD_PHRAM is not set
+# CONFIG_MTD_MTDRAM is not set
+# CONFIG_MTD_BLOCK2MTD is not set
+# CONFIG_MTD_DOCG3 is not set
+# end of Self-contained MTD device drivers
+CONFIG_MTD_NAND_CORE=y
+# CONFIG_MTD_ONENAND is not set
+CONFIG_MTD_NAND_ECC_SW_HAMMING=y
+# CONFIG_MTD_NAND_ECC_SW_HAMMING_SMC is not set
+CONFIG_MTD_RAW_NAND=y
+# CONFIG_MTD_NAND_ECC_SW_BCH is not set
+CONFIG_MTD_NAND_DENALI=y
+# CONFIG_MTD_NAND_DENALI_PCI is not set
+CONFIG_MTD_NAND_DENALI_DT=y
+CONFIG_MTD_NAND_OMAP2=y
+CONFIG_MTD_NAND_OMAP_BCH=y
+CONFIG_MTD_NAND_OMAP_BCH_BUILD=y
+# CONFIG_MTD_NAND_CAFE is not set
+CONFIG_MTD_NAND_BRCMNAND=y
+# CONFIG_MTD_NAND_MXIC is not set
+# CONFIG_MTD_NAND_GPIO is not set
+# CONFIG_MTD_NAND_PLATFORM is not set
+# CONFIG_MTD_NAND_CADENCE is not set
+# CONFIG_MTD_NAND_ARASAN is not set
+# CONFIG_MTD_NAND_NANDSIM is not set
+# CONFIG_MTD_NAND_RICOH is not set
+# CONFIG_MTD_NAND_DISKONCHIP is not set
+# CONFIG_MTD_SPI_NAND is not set
+CONFIG_MTD_NAND_ECC=y
+# CONFIG_MTD_LPDDR is not set
+# CONFIG_MTD_LPDDR2_NVM is not set
+# CONFIG_MTD_SPI_NOR is not set
+CONFIG_MTD_UBI=y
+CONFIG_MTD_UBI_WL_THRESHOLD=4096
+CONFIG_MTD_UBI_BEB_LIMIT=20
+# CONFIG_MTD_UBI_FASTMAP is not set
+# CONFIG_MTD_UBI_GLUEBI is not set
+# CONFIG_MTD_UBI_BLOCK is not set
+CONFIG_MTD_HYPERBUS=y
+# CONFIG_LEDS_TRIGGER_MTD is not set
+
+
+=> 
+=> nand erase.part NAND.kernel
+
+NAND erase.part: device 0 offset 0x300000, size 0x700000
+Erasing at 0x9e0000 -- 100% complete.
+OK
+=> fatload mmc 0:1 0x82000000 fitImage.itb         
+5032690 bytes read in 394 ms (12.2 MiB/s)
+=> nand write 0x82000000 NAND.kernel  0x4ccaf2
+
+NAND write: device 0 offset 0x300000, size 0x4ccaf2
+ 5032690 bytes written: OK
+=> fatload mmc 0:1 0x82000000 lnt_fs.ubi
+209453056 bytes read in 16091 ms (12.4 MiB/s)
+=> nand write 0x82000000 NAND.file-system 0xc7c0000
+
+NAND write: device 0 offset 0xa00000, size 0xc7c0000
+omap-elm: uncorrectable ECC errors
+NAND write to offset a00000 failed -5
+ 0 bytes written: ERROR
+=> nand write 0x82000000 NAND.file-system 0xc7c0000
+
+NAND write: device 0 offset 0xa00000, size 0xc7c0000
+omap-elm: uncorrectable ECC errors
+NAND write to offset a00000 failed -5
+ 0 bytes written: ERROR
+=> nand write 0x82000000 NAND.file-system 0xc7c0000
+
+NAND write: device 0 offset 0xa00000, size 0xc7c0000
+omap-elm: uncorrectable ECC errors
+NAND write to offset a00000 failed -5
+ 0 bytes written: ERROR
+=> nand bad
+
+Device 0 bad blocks:
+=> nand erase.part NAND.file-system
+
+NAND erase.part: device 0 offset 0xa00000, size 0x1f600000
+Erasing at 0x1ffe0000 -- 100% complete.
+OK
+=> nand write 0x82000000 NAND.file-system 0xc7c0000
+
+NAND write: device 0 offset 0xa00000, size 0xc7c0000
+ 209453056 bytes written: OK
+=> re
+
+
+=> nand erase.part NAND.kernel
+
+NAND erase.part: device 0 offset 0x300000, size 0x700000
+Erasing at 0x9e0000 -- 100% complete.
+OK
+=> fatload mmc 0:1 0x82000000 fitImage.itb         
+5032690 bytes read in 394 ms (12.2 MiB/s)
+=> nand write 0x82000000 NAND.kernel  0x4ccaf2
+
+NAND write: device 0 offset 0x300000, size 0x4ccaf2
+ 5032690 bytes written: OK
+=> fatload mmc 0:1 0x82000000 lnt_fs.ubi
+209453056 bytes read in 16091 ms (12.4 MiB/s)
+=> nand write 0x82000000 NAND.file-system 0xc7c0000
+
+NAND write: device 0 offset 0xa00000, size 0xc7c0000
+omap-elm: uncorrectable ECC errors
+NAND write to offset a00000 failed -5
+ 0 bytes written: ERROR
+=> nand write 0x82000000 NAND.file-system 0xc7c0000
+
+NAND write: device 0 offset 0xa00000, size 0xc7c0000
+omap-elm: uncorrectable ECC errors
+NAND write to offset a00000 failed -5
+ 0 bytes written: ERROR
+=> 
+
+
+
+
+
+
+=> nand erase.part NAND.kernel
+
+NAND erase.part: device 0 offset 0x300000, size 0x700000
+Erasing at 0x9e0000 -- 100% complete.
+OK
+=> fatload mmc 0:1 0x82000000 fitImage.itb         
+5032690 bytes read in 394 ms (12.2 MiB/s)
+=> nand write 0x82000000 NAND.kernel  0x4ccaf2
+
+NAND write: device 0 offset 0x300000, size 0x4ccaf2
+ 5032690 bytes written: OK
+=> fatload mmc 0:1 0x82000000 lnt_fs.ubi
+209453056 bytes read in 16091 ms (12.4 MiB/s)
+=> nand write 0x82000000 NAND.file-system 0xc7c0000
+
+NAND write: device 0 offset 0xa00000, size 0xc7c0000
+
+
+
+
+
+
+
+=> fatload mmc 0:1 0x82000000 MLO                  
+Attempting to read 158627 bytes from cluster 18412
+Successfully read 158627 bytes, total read so far: 158627 bytes
+158627 bytes read in 29 ms (5.2 MiB/s)
+=> nand write 0x82000000 NAND.SPL 0x26ba3          
+
+NAND write: device 0 offset 0x0, size 0x26ba3
+ 158627 bytes written: OK
+=> fatload mmc 0:1 0x82000000 u-boot.img           
+Attempting to read 817856 bytes from cluster 18512
+Successfully read 817856 bytes, total read so far: 817856 bytes
+817856 bytes read in 80 ms (9.7 MiB/s)
+=> nand write 0x82000000 NAND.u-boot 0xc7ac0       
+
+NAND write: device 0 offset 0x180000, size 0xc7ac0
+ 817856 bytes written: OK
+=> fatload mmc 0:1 0x82000000 fitImage.itb  
+Attempting to read 5032690 bytes from cluster 17797
+Zumi Fun: get_contents Line: 441
+Error reading cluster 17797, remaining size 5032690 bytes
+Failed to load 'fitImage.itb'
+=> fatload mmc 0:1 0x82000000 fitImage.itb
+
+
+
+
+
+nand erase.chip
+
+NAND erase.chip: device 0 whole chip
+Erasing at 0x1ffe0000 -- 100% complete.
+OK
+
+
+=> fatload mmc 0:1 0x82000000 MLO         
+Attempting to read 158831 bytes from cluster 295284
+Successfully read 158831 bytes, total read so far: 158831 bytes
+158831 bytes read in 29 ms (5.2 MiB/s)
+=> nand write 0x82000000 NAND.SPL 0x26c6f
+
+NAND write: device 0 offset 0x0, size 0x26c6f
+ 158831 bytes written: OK
+=> fatload mmc 0:1 0x82000000 u-boot.img
+Attempting to read 818112 bytes from cluster 295334
+Successfully read 818112 bytes, total read so far: 818112 bytes
+818112 bytes read in 81 ms (9.6 MiB/s)
+=> nand write 0x82000000 NAND.u-boot 0xc7bc0
+
+NAND write: device 0 offset 0x180000, size 0xc7bc0
+ 818112 bytes written: OK
+=> fatload mmc 0:1 0x82000000 fitImage.itb         
+Attempting to read 5036786 bytes from cluster 37135
+Successfully read 5036786 bytes, total read so far: 5036786 bytes
+5036786 bytes read in 409 ms (11.7 MiB/s)
+=> nand write 0x82000000 NAND.kernel  0x4cdaf2
+
+NAND write: device 0 offset 0x300000, size 0x4cdaf2
+ 5036786 bytes written: OK
+=> fatload mmc 0:1 0x82000000 lnt_fs.ubi
+Attempting to read 209453056 bytes from cluster 37453
+Zumi Fun: get_contents Line: 441
+Error reading cluster 37453, remaining size 209453056 bytes
+Failed to load 'lnt_fs.ubi'
+=> 
+
+
+
+DDR test:    int result = ddr_read_write_test(0x90000000, DDR_SIZE);
+========
+U-Boot SPL 2023.04-00001-gd63f266198-dirty (Dec 04 2024 - 19:12:10 +0530)
+Boot mode as per spl_boot_device is 65
+Test DDR
+Starting DDR memory test...
+word = 0, addr = 90000000 
+word = 5242880, addr = 91400000 
+word = 10485760, addr = 92800000 
+word = 15728640, addr = 93c00000 
+word = 20971520, addr = 95000000                        
+word = 26214400, addr = 96400000                      
+word = 31457280, addr = 97800000                       
+word = 36700160, addr = 98c00000                    
+word = 41943040, addr = 9a000000                      
+word = 47185920, addr = 9b400000 
+word = 52428800, addr = 9c800000 
+word = 57671680, addr = 9dc00000 
+word = 62914560, addr = 9f000000 
+
+Verify the test pattern in DDR memory 
+Reading word = 0, addr = 90000000 
+Reading word = 5242880, addr = 91400000 
+Reading word = 10485760, addr = 92800000 
+Reading word = 15728640, addr = 93c00000 
+Reading word = 20971520, addr = 95000000 
+Reading word = 26214400, addr = 96400000 
+Reading word = 31457280, addr = 97800000 
+Reading word = 36700160, addr = 98c00000 
+Reading word = 41943040, addr = 9a000000 
+Reading word = 47185920, addr = 9b400000 
+Reading word = 52428800, addr = 9c800000 
+Reading word = 57671680, addr = 9dc00000 
+Reading word = 62914560, addr = 9f000000 
+
+DDR memory test passed successfully.
+Trying to boot from UART
+CC
+
+
+DDR test:   int result = ddr_read_write_test(0x80000000, DDR_SIZE);
+=========
+Boot mode as per spl_boot_device is 65
+Test DDR
+Starting DDR memory test...
+word = 0, addr = 80000000 
+word = 5242880, addr = 81400000 
+word = 10485760, addr = 82800000 
+word = 15728640, addr = 83c00000 
+word = 20971520, addr = 85000000 
+word = 26214400, addr = 86400000 
+word = 31457280, addr = 87800000 
+word = 36700160, addr = 88c00000 
+word = 41943040, addr = 8a000000 
+word = 47185920, addr = 8b400000 
+word = 52428800, addr = 8c800000 
+word = 57671680, addr = 8dc00000 
+word = 62914560, addr = 8f000000 
+
+Verify the test pattern in DDR memory 
+Reading word = 0, addr = 80000000 
+Reading word = 5242880, addr = 81400000 
+Reading word = 10485760, addr = 82800000 
+Reading word = 15728640, addr = 83c00000 
+Reading word = 20971520, addr = 85000000 
+Reading word = 26214400, addr = 86400000 
+Reading word = 31457280, addr = 87800000 
+Reading word = 36700160, addr = 88c00000 
+Reading word = 41943040, addr = 8a000000 
+Reading word = 47185920, addr = 8b400000 
+Reading word = 52428800, addr = 8c800000 
+Reading word = 57671680, addr = 8dc00000 
+Reading word = 62914560, addr = 8f000000 
+
+DDR memory test passed successfully.
+Trying to boot from UART
+CCCCCCCCCCCCCCCCCC
+
+
+
+
+
+
+
+
+
+setenv bootargs console=ttyUSB0,115200n8 root=/dev/mnt/rootfs rootwait
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+partition@0 {
+    label = "NAND.SPL";
+    reg = <0x00000000 0x00040000>;  // 0.25 MB for SPL
+};
+
+partition@1 {
+    label = "NAND.SPL.backup1";
+    reg = <0x00040000 0x00040000>;  // 0.25 MB for backup1
+};
+
+partition@2 {
+    label = "NAND.SPL.backup2";
+    reg = <0x00080000 0x00040000>;  // 0.25 MB for backup2
+};
+
+partition@3 {
+    label = "NAND.SPL.backup3";
+    reg = <0x000c0000 0x00040000>;  // 0.25 MB for backup3
+};
+
+partition@4 {
+    label = "NAND.u-boot-1";
+    reg = <0x00100000 0x00200000>;  // 2 MB for uboot1
+};
+
+partition@5 {
+    label = "NAND.kernel-1";
+    reg = <0x00300000 0x00600000>;  // 6 MB for kernel1
+};
+
+partition@6 {
+    label = "NAND.file-system-1";
+    reg = <0x00900000 0x08C00000>;  // 140 MB for file system 1
+};
+
+partition@7 {
+    label = "NAND.u-boot-2";
+    reg = <0x0F200000 0x00200000>;  // 2 MB for uboot2
+};
+
+partition@8 {
+    label = "NAND.kernel-2";
+    reg = <0x0F400000 0x00600000>;  // 6 MB for kernel2
+};
+
+partition@9 {
+    label = "NAND.file-system-2";
+    reg = <0x0FA00000 0x08C00000>;  // 140 MB for file system 2
+};
+
+partition@10 {
+    label = "NAND.Application";
+    reg = <0x19400000 0x02000000>;  // 32 MB for Application
+};
+
+partition@11 {
+    label = "NAND.sw-env";
+    reg = <0x1B600000 0x00200000>;  // 2 MB for software environment
+};
+
+partition@12 {
+
+    label = "NAND.sw-update";
+    reg = <0x1B800000 0x08000000>;  // 128 MB for software update
+};
+
+
+nand boot ubi error but rootfs boot from sd card
+===================================================
+
+
+1)lsblk
+e.g/dev/sdX (replace X with your actual device).
+
+Create two partitions:
+Partition 1 (FAT32): For bootloader or other files if needed.
+Partition 2 (ext4): For the root filesystem.
+Use fdisk:
+
+2)sudo fdisk /dev/sdb
+
+Press o to create a new partition table.
+Press n to create the first partition.
+Set it to primary, partition number 1, and size (e.g., +100M for 100MB).
+Press t and select c to set the partition type to W95 FAT32 (LBA).
+Press n to create the second partition.
+Set it to primary, partition number 2, and size (use the remaining space).
+Press w to write the changes and exit.
+
+3)
+
+sudo mkfs.vfat -F 32 /dev/sdb1
+sudo mkfs.ext4 /dev/sdb2
+
+sudo mkdir -p /mnt/rootfs1
+sudo mount /dev/sdb1 /mnt/rootfs1
+
+sudo tar -xvf  /home/zumi/Downloads/Nibin/lnt_fs.ubi.tar.gz -C /mnt/rootfs1
+
+
+
+sudo mkdir -p /mnt/rootfs
+sudo mount /dev/sdb2 /mnt/rootfs
+
+sudo tar -xvf  tisdk-base-image-am437x-evm-20241210050412.rootfs.tar.xz -C /mnt/rootfs
+
+sudo tar -xvf  tisdk-base-image-am437x-evm-20241208073618.rootfs.tar.xz -C /mnt/rootfs
+
+tisdk-base-image-am437x-evm-20241208073618.rootfs.tar.xz
+
+sudo sync
+sudo umount /mnt/rootfs
+
+
+
+SD card:
+=======
+
+
+set nandroot "/dev/mmcblk0p2 rw"
+set nandrootfstype "ext2 rootwait"
+
+
+set nandroot "/dev/mmcblk0p2 rw"
+set nandrootfstype "ext4 rootwait"
+
+
+NAND (UBI):
+==========
+
+
+set nandrootfstype "ubifs rootwait"
+
+set nandroot "ubi0:rootfs rw ubi.mtd=NAND.file-system,2048"
+
+
+export TI_SECURE_DEV_PKG=/opt/ti-processor-sdk-linux-am437x-hs-evm-06.03.00.106/board-support/proc-sdk-secdev-am437x-hs-evm-01.06.00.05/scripts/proc-sdk-secdev
+
+
+
+
+wget https://developer.arm.com/-/media/Files/downloads/gnu-a/8.3-2019.03/binrel/gcc-arm-8.3-2019.03-x86_64-arm-linux-gnueabihf.tar.xz
+tar -Jxvf gcc-arm-8.3-2019.03-x86_64-arm-linux-gnueabihf.tar.xz -C $HOME
+
+linux build
+================
+
+
+
+
+
+export ARCH=arm
+export CROSS_COMPILE=/home/zumi/gcc-arm-8.3-2019.03-x86_64-arm-linux-gnueabihf/bin/arm-linux-gnueabihf-
+export PATH=/home/zumi/gcc-arm-8.3-2019.03-x86_64-arm-linux-gnueabihf/bin:$PATH  
+ 
+ 
+ make distclean
+
+make tisdk_am437x-evm-rt_defconfig
+
+ make -j8
+
+
+
+
+
+
+
+
+
+
+
+
+//zumi          
+/* Get remaining bytes */
+actsize = filesize;
+printf("Attempting to read %d bytes from cluster %d\n", (int)actsize, curclust);
+
+if (get_cluster(mydata, curclust, buffer, (int)actsize) != 0) {
+    p();
+    printf("Error reading cluster %d, remaining size %d bytes\n", curclust, (int)actsize);
+    return -1;
+}
+
+*gotsize += actsize;
+printf("Successfully read %d bytes, total read so far: %d bytes\n", (int)actsize, *gotsize);
+
+return 0;
+//zumi
+
+
+
+
+
+
+
+
+
+log:
+
+
+
+
+
+
+
+
+=> nand erase.chip
+
+NAND erase.chip: device 0 whole chip
+Erasing at 0x1ffe0000 -- 100% complete.
+OK
+=> mmc rescan
+=> fatload mmc 0:1 0x82000000 MLO         
+158035 bytes read in 18 ms (8.4 MiB/s)
+=> nand write 0x82000000 NAND.SPL 0x26953
+
+NAND write: device 0 offset 0x0, size 0x26953
+ 158035 bytes written: OK
+=> fatload mmc 0:1 0x82000000 u-boot.img
+817824 bytes read in 69 ms (11.3 MiB/s)
+=> nand write 0x82000000 NAND.u-boot 0xc7aa0
+
+NAND write: device 0 offset 0x180000, size 0xc7aa0
+ 817824 bytes written: OK
+=> fatload mmc 0:1 0x82000000 fitImage.itb         
+5036946 bytes read in 397 ms (12.1 MiB/s)
+=> nand write 0x82000000 NAND.kernel  0x4cdb92
+
+NAND write: device 0 offset 0x300000, size 0x4cdb92
+ 5036946 bytes written: OK
+=> fatload mmc 0:1 0x82000000 lnt_fs.ubi
+Zumi Fun: get_contents Line: 426
+Error reading cluster
+Failed to load 'lnt_fs.ubi'
+=> 
+
+
+
+
+A70h CTRL_CONF_XDMA_EVT_INTR0 Section 7.3.1.202
+
+88Ch CTRL_CONF_GPMC_CLK Section 7.3.1.81
+
+
+9.3.4.148 EMIF4D_EXT_PHY_CTRL_28 Register (Offset = 2D8h) [reset = 0h]
+
+
+root@am437x-evm:~# zcat /proc/config.gz | grep MTD
+CONFIG_MTD=y
+CONFIG_MTD_TESTS=m
+# CONFIG_MTD_AR7_PARTS is not set
+CONFIG_MTD_CMDLINE_PARTS=y
+CONFIG_MTD_OF_PARTS=y
+# CONFIG_MTD_AFS_PARTS is not set
+# CONFIG_MTD_REDBOOT_PARTS is not set
+CONFIG_MTD_BLKDEVS=y
+CONFIG_MTD_BLOCK=y
+# CONFIG_MTD_OOPS is not set
+# CONFIG_MTD_SWAP is not set
+# CONFIG_MTD_PARTITIONED_MASTER is not set
+CONFIG_MTD_CFI=y
+# CONFIG_MTD_JEDECPROBE is not set
+CONFIG_MTD_GEN_PROBE=y
+# CONFIG_MTD_CFI_ADV_OPTIONS is not set
+CONFIG_MTD_MAP_BANK_WIDTH_1=y
+CONFIG_MTD_MAP_BANK_WIDTH_2=y
+CONFIG_MTD_MAP_BANK_WIDTH_4=y
+CONFIG_MTD_CFI_I1=y
+CONFIG_MTD_CFI_I2=y
+CONFIG_MTD_CFI_INTELEXT=y
+CONFIG_MTD_CFI_AMDSTD=y
+# CONFIG_MTD_CFI_STAA is not set
+CONFIG_MTD_CFI_UTIL=y
+# CONFIG_MTD_RAM is not set
+# CONFIG_MTD_ROM is not set
+# CONFIG_MTD_ABSENT is not set
+CONFIG_MTD_COMPLEX_MAPPINGS=y
+CONFIG_MTD_PHYSMAP=y
+# CONFIG_MTD_PHYSMAP_COMPAT is not set
+CONFIG_MTD_PHYSMAP_OF=y
+# CONFIG_MTD_PHYSMAP_VERSATILE is not set
+# CONFIG_MTD_PHYSMAP_GEMINI is not set
+# CONFIG_MTD_PHYSMAP_IXP4XX is not set
+# CONFIG_MTD_PHYSMAP_GPIO_ADDR is not set
+# CONFIG_MTD_PCI is not set
+# CONFIG_MTD_INTEL_VR_NOR is not set
+# CONFIG_MTD_PLATRAM is not set
+# Self-contained MTD device drivers
+# CONFIG_MTD_PMC551 is not set
+# CONFIG_MTD_DATAFLASH is not set
+# CONFIG_MTD_MCHP23K256 is not set
+# CONFIG_MTD_SST25L is not set
+# CONFIG_MTD_BCM47XXSFLASH is not set
+# CONFIG_MTD_SLRAM is not set
+# CONFIG_MTD_PHRAM is not set
+# CONFIG_MTD_MTDRAM is not set
+# CONFIG_MTD_BLOCK2MTD is not set
+# CONFIG_MTD_DOCG3 is not set
+# end of Self-contained MTD device drivers
+CONFIG_MTD_NAND_CORE=y
+# CONFIG_MTD_ONENAND is not set
+CONFIG_MTD_NAND_ECC_SW_HAMMING=y
+# CONFIG_MTD_NAND_ECC_SW_HAMMING_SMC is not set
+CONFIG_MTD_RAW_NAND=y
+# CONFIG_MTD_NAND_ECC_SW_BCH is not set
+CONFIG_MTD_NAND_DENALI=y
+# CONFIG_MTD_NAND_DENALI_PCI is not set
+CONFIG_MTD_NAND_DENALI_DT=y
+CONFIG_MTD_NAND_OMAP2=y
+CONFIG_MTD_NAND_OMAP_BCH=y
+CONFIG_MTD_NAND_OMAP_BCH_BUILD=y
+# CONFIG_MTD_NAND_CAFE is not set
+CONFIG_MTD_NAND_BRCMNAND=y
+# CONFIG_MTD_NAND_MXIC is not set
+# CONFIG_MTD_NAND_GPIO is not set
+# CONFIG_MTD_NAND_PLATFORM is not set
+# CONFIG_MTD_NAND_CADENCE is not set
+# CONFIG_MTD_NAND_ARASAN is not set
+# CONFIG_MTD_NAND_NANDSIM is not set
+# CONFIG_MTD_NAND_RICOH is not set
+# CONFIG_MTD_NAND_DISKONCHIP is not set
+# CONFIG_MTD_SPI_NAND is not set
+CONFIG_MTD_NAND_ECC=y
+# CONFIG_MTD_LPDDR is not set
+# CONFIG_MTD_LPDDR2_NVM is not set
+# CONFIG_MTD_SPI_NOR is not set
+CONFIG_MTD_UBI=y
+CONFIG_MTD_UBI_WL_THRESHOLD=4096
+CONFIG_MTD_UBI_BEB_LIMIT=20
+# CONFIG_MTD_UBI_FASTMAP is not set
+# CONFIG_MTD_UBI_GLUEBI is not set
+# CONFIG_MTD_UBI_BLOCK is not set
+CONFIG_MTD_HYPERBUS=y
+# CONFIG_LEDS_TRIGGER_MTD is not set
+
+
+=> 
+=> nand erase.part NAND.kernel
+
+NAND erase.part: device 0 offset 0x300000, size 0x700000
+Erasing at 0x9e0000 -- 100% complete.
+OK
+=> fatload mmc 0:1 0x82000000 fitImage.itb         
+5032690 bytes read in 394 ms (12.2 MiB/s)
+=> nand write 0x82000000 NAND.kernel  0x4ccaf2
+
+NAND write: device 0 offset 0x300000, size 0x4ccaf2
+ 5032690 bytes written: OK
+=> fatload mmc 0:1 0x82000000 lnt_fs.ubi
+209453056 bytes read in 16091 ms (12.4 MiB/s)
+=> nand write 0x82000000 NAND.file-system 0xc7c0000
+
+NAND write: device 0 offset 0xa00000, size 0xc7c0000
+omap-elm: uncorrectable ECC errors
+NAND write to offset a00000 failed -5
+ 0 bytes written: ERROR
+=> nand write 0x82000000 NAND.file-system 0xc7c0000
+
+NAND write: device 0 offset 0xa00000, size 0xc7c0000
+omap-elm: uncorrectable ECC errors
+NAND write to offset a00000 failed -5
+ 0 bytes written: ERROR
+=> nand write 0x82000000 NAND.file-system 0xc7c0000
+
+NAND write: device 0 offset 0xa00000, size 0xc7c0000
+omap-elm: uncorrectable ECC errors
+NAND write to offset a00000 failed -5
+ 0 bytes written: ERROR
+=> nand bad
+
+Device 0 bad blocks:
+=> nand erase.part NAND.file-system
+
+NAND erase.part: device 0 offset 0xa00000, size 0x1f600000
+Erasing at 0x1ffe0000 -- 100% complete.
+OK
+=> nand write 0x82000000 NAND.file-system 0xc7c0000
+
+NAND write: device 0 offset 0xa00000, size 0xc7c0000
+ 209453056 bytes written: OK
+=> re
+
+
+=> nand erase.part NAND.kernel
+
+NAND erase.part: device 0 offset 0x300000, size 0x700000
+Erasing at 0x9e0000 -- 100% complete.
+OK
+=> fatload mmc 0:1 0x82000000 fitImage.itb         
+5032690 bytes read in 394 ms (12.2 MiB/s)
+=> nand write 0x82000000 NAND.kernel  0x4ccaf2
+
+NAND write: device 0 offset 0x300000, size 0x4ccaf2
+ 5032690 bytes written: OK
+=> fatload mmc 0:1 0x82000000 lnt_fs.ubi
+209453056 bytes read in 16091 ms (12.4 MiB/s)
+=> nand write 0x82000000 NAND.file-system 0xc7c0000
+
+NAND write: device 0 offset 0xa00000, size 0xc7c0000
+omap-elm: uncorrectable ECC errors
+NAND write to offset a00000 failed -5
+ 0 bytes written: ERROR
+=> nand write 0x82000000 NAND.file-system 0xc7c0000
+
+NAND write: device 0 offset 0xa00000, size 0xc7c0000
+omap-elm: uncorrectable ECC errors
+NAND write to offset a00000 failed -5
+ 0 bytes written: ERROR
+=> 
+
+
+
+
+
+
+=> nand erase.part NAND.kernel
+
+NAND erase.part: device 0 offset 0x300000, size 0x700000
+Erasing at 0x9e0000 -- 100% complete.
+OK
+=> fatload mmc 0:1 0x82000000 fitImage.itb         
+5032690 bytes read in 394 ms (12.2 MiB/s)
+=> nand write 0x82000000 NAND.kernel  0x4ccaf2
+
+NAND write: device 0 offset 0x300000, size 0x4ccaf2
+ 5032690 bytes written: OK
+=> fatload mmc 0:1 0x82000000 lnt_fs.ubi
+209453056 bytes read in 16091 ms (12.4 MiB/s)
+=> nand write 0x82000000 NAND.file-system 0xc7c0000
+
+NAND write: device 0 offset 0xa00000, size 0xc7c0000
+
+
+
+
+
+
+
+=> fatload mmc 0:1 0x82000000 MLO                  
+Attempting to read 158627 bytes from cluster 18412
+Successfully read 158627 bytes, total read so far: 158627 bytes
+158627 bytes read in 29 ms (5.2 MiB/s)
+=> nand write 0x82000000 NAND.SPL 0x26ba3          
+
+NAND write: device 0 offset 0x0, size 0x26ba3
+ 158627 bytes written: OK
+=> fatload mmc 0:1 0x82000000 u-boot.img           
+Attempting to read 817856 bytes from cluster 18512
+Successfully read 817856 bytes, total read so far: 817856 bytes
+817856 bytes read in 80 ms (9.7 MiB/s)
+=> nand write 0x82000000 NAND.u-boot 0xc7ac0       
+
+NAND write: device 0 offset 0x180000, size 0xc7ac0
+ 817856 bytes written: OK
+=> fatload mmc 0:1 0x82000000 fitImage.itb  
+Attempting to read 5032690 bytes from cluster 17797
+Zumi Fun: get_contents Line: 441
+Error reading cluster 17797, remaining size 5032690 bytes
+Failed to load 'fitImage.itb'
+=> fatload mmc 0:1 0x82000000 fitImage.itb
+
+
+
+
+
+nand erase.chip
+
+NAND erase.chip: device 0 whole chip
+Erasing at 0x1ffe0000 -- 100% complete.
+OK
+
+
+=> fatload mmc 0:1 0x82000000 MLO         
+Attempting to read 158831 bytes from cluster 295284
+Successfully read 158831 bytes, total read so far: 158831 bytes
+158831 bytes read in 29 ms (5.2 MiB/s)
+=> nand write 0x82000000 NAND.SPL 0x26c6f
+
+NAND write: device 0 offset 0x0, size 0x26c6f
+ 158831 bytes written: OK
+=> fatload mmc 0:1 0x82000000 u-boot.img
+Attempting to read 818112 bytes from cluster 295334
+Successfully read 818112 bytes, total read so far: 818112 bytes
+818112 bytes read in 81 ms (9.6 MiB/s)
+=> nand write 0x82000000 NAND.u-boot 0xc7bc0
+
+NAND write: device 0 offset 0x180000, size 0xc7bc0
+ 818112 bytes written: OK
+=> fatload mmc 0:1 0x82000000 fitImage.itb         
+Attempting to read 5036786 bytes from cluster 37135
+Successfully read 5036786 bytes, total read so far: 5036786 bytes
+5036786 bytes read in 409 ms (11.7 MiB/s)
+=> nand write 0x82000000 NAND.kernel  0x4cdaf2
+
+NAND write: device 0 offset 0x300000, size 0x4cdaf2
+ 5036786 bytes written: OK
+=> fatload mmc 0:1 0x82000000 lnt_fs.ubi
+Attempting to read 209453056 bytes from cluster 37453
+Zumi Fun: get_contents Line: 441
+Error reading cluster 37453, remaining size 209453056 bytes
+Failed to load 'lnt_fs.ubi'
+=> 
+
+
+
+DDR test:    int result = ddr_read_write_test(0x90000000, DDR_SIZE);
+========
+U-Boot SPL 2023.04-00001-gd63f266198-dirty (Dec 04 2024 - 19:12:10 +0530)
+Boot mode as per spl_boot_device is 65
+Test DDR
+Starting DDR memory test...
+word = 0, addr = 90000000 
+word = 5242880, addr = 91400000 
+word = 10485760, addr = 92800000 
+word = 15728640, addr = 93c00000 
+word = 20971520, addr = 95000000                        
+word = 26214400, addr = 96400000                      
+word = 31457280, addr = 97800000                       
+word = 36700160, addr = 98c00000                    
+word = 41943040, addr = 9a000000                      
+word = 47185920, addr = 9b400000 
+word = 52428800, addr = 9c800000 
+word = 57671680, addr = 9dc00000 
+word = 62914560, addr = 9f000000 
+
+Verify the test pattern in DDR memory 
+Reading word = 0, addr = 90000000 
+Reading word = 5242880, addr = 91400000 
+Reading word = 10485760, addr = 92800000 
+Reading word = 15728640, addr = 93c00000 
+Reading word = 20971520, addr = 95000000 
+Reading word = 26214400, addr = 96400000 
+Reading word = 31457280, addr = 97800000 
+Reading word = 36700160, addr = 98c00000 
+Reading word = 41943040, addr = 9a000000 
+Reading word = 47185920, addr = 9b400000 
+Reading word = 52428800, addr = 9c800000 
+Reading word = 57671680, addr = 9dc00000 
+Reading word = 62914560, addr = 9f000000 
+
+DDR memory test passed successfully.
+Trying to boot from UART
+CC
+
+
+DDR test:   int result = ddr_read_write_test(0x80000000, DDR_SIZE);
+=========
+Boot mode as per spl_boot_device is 65
+Test DDR
+Starting DDR memory test...
+word = 0, addr = 80000000 
+word = 5242880, addr = 81400000 
+word = 10485760, addr = 82800000 
+word = 15728640, addr = 83c00000 
+word = 20971520, addr = 85000000 
+word = 26214400, addr = 86400000 
+word = 31457280, addr = 87800000 
+word = 36700160, addr = 88c00000 
+word = 41943040, addr = 8a000000 
+word = 47185920, addr = 8b400000 
+word = 52428800, addr = 8c800000 
+word = 57671680, addr = 8dc00000 
+word = 62914560, addr = 8f000000 
+
+Verify the test pattern in DDR memory 
+Reading word = 0, addr = 80000000 
+Reading word = 5242880, addr = 81400000 
+Reading word = 10485760, addr = 82800000 
+Reading word = 15728640, addr = 83c00000 
+Reading word = 20971520, addr = 85000000 
+Reading word = 26214400, addr = 86400000 
+Reading word = 31457280, addr = 87800000 
+Reading word = 36700160, addr = 88c00000 
+Reading word = 41943040, addr = 8a000000 
+Reading word = 47185920, addr = 8b400000 
+Reading word = 52428800, addr = 8c800000 
+Reading word = 57671680, addr = 8dc00000 
+Reading word = 62914560, addr = 8f000000 
+
+DDR memory test passed successfully.
+Trying to boot from UART
+CCCCCCCCCCCCCCCCCC
+
+printenv:
+==========
+
+
+addr_fit=0x90000000
+arch=arm
+baudrate=115200
+board=am43xx
+board_name=am43xx
+boot_a_script=load ${devtype} ${devnum}:${distro_bootpart} ${scriptaddr} ${prefix}${script}; source ${scriptaddr}
+boot_efi_binary=load ${devtype} ${devnum}:${distro_bootpart} ${kernel_addr_r} efi/boot/bootarm.efi; if fdt addr -q ${fdt_addr_r}; then bootefi
+boot_efi_bootmgr=if fdt addr -q ${fdt_addr_r}; then bootefi bootmgr ${fdt_addr_r};else bootefi bootmgr;fi
+boot_extlinux=sysboot ${devtype} ${devnum}:${distro_bootpart} any ${scriptaddr} ${prefix}${boot_syslinux_conf}
+boot_fdt=try
+boot_fit=0
+boot_net_usb_start=usb start
+boot_prefixes=/ /boot/
+boot_script_dhcp=boot.scr.uimg
+boot_scripts=boot.scr.uimg boot.scr
+boot_syslinux_conf=extlinux/extlinux.conf
+boot_targets=mmc0 usb0 nand0 pxe dhcp 
+bootcmd=run findfdt; run finduuid; run distro_bootcmd
+bootcmd_dhcp=devtype=dhcp; run boot_net_usb_start; if dhcp ${scriptaddr} ${boot_script_dhcp}; then source ${scriptaddr}; fi;setenv efi_fdtfil;
+bootcmd_mmc0=devnum=0; run mmc_boot
+bootcmd_nand0=run nandboot
+bootcmd_pxe=run boot_net_usb_start; dhcp; if pxe get; then pxe boot; fi
+bootcmd_usb0=devnum=0; run usb_boot
+bootdelay=2
+bootm_size=0x10000000
+console=ttyS0,115200n8
+cpu=armv7
+dfu_alt_info_emmc=rawemmc raw 0 3751936;boot part 1 1;rootfs part 1 2;MLO fat 1 1;MLO.raw raw 0x100 0x200;u-boot.img.raw raw 0x300 0x1000;u-e1
+dfu_alt_info_mmc=boot part 0 1;rootfs part 0 2;MLO fat 0 1;MLO.raw raw 0x100 0x200;u-boot.img.raw raw 0x300 0x1000;u-env.raw raw 0x1300 0x2001
+dfu_alt_info_qspi=u-boot.bin raw 0x0 0x080000;u-boot.backup raw 0x080000 0x080000;u-boot-spl-os raw 0x100000 0x010000;u-boot-env raw 0x1100000
+dfu_alt_info_ram=kernel ram 0x80200000 0x4000000;fdt ram 0x80f80000 0x80000;ramdisk ram 0x81000000 0x4000000
+dfu_bufsiz=0x10000
+distro_bootcmd=for target in ${boot_targets}; do run bootcmd_${target}; done
+dtboaddr=0x89000000
+efi_dtb_prefixes=/ /dtb/ /dtb/current/
+eth2addr=88:01:f9:59:b4:7b
+fdt_addr_r=0x88000000
+fdtaddr=0x88000000
+fdtcontroladdr=9df2bb40
+fdtfile=undefined
+fdtoverlay_addr_r=0x89000000
+findfdt=if test $board_name = AM43EPOS; then setenv fdtfile am43x-epos-evm.dtb; fi; if test $board_name = AM43__GP; then setenv fdtfile am437 
+finduuid=part uuid mmc 0:2 uuid
+get_fit_config=setexpr name_fit_config gsub / _ conf-${fdtfile}
+get_overlaystring=for overlay in $name_overlays;do;setenv overlaystring ${overlaystring}'#'${overlay};done;
+kernel_addr_r=0x82000000
+load_efi_dtb=load ${devtype} ${devnum}:${distro_bootpart} ${fdt_addr_r} ${prefix}${efi_fdtfile}
+loadaddr=0x82000000
+loadramdisk=load ${devtype} ${devnum} ${rdaddr} ramdisk.gz
+mmc_boot=if mmc dev ${devnum}; then devtype=mmc; run scan_dev_for_boot_part; fi
+mtdids=nand0=nand.0
+mtdparts=mtdparts=nand.0:256k(NAND.SPL),256k(NAND.SPL.backup1),256k(NAND.SPL.backup2),256k(NAND.SPL.backup3),512k(NAND.u-boot-spl-os),1m(NAND)
+name_fit=fitImage
+nandargs=setenv bootargs console=${console} ${optargs} root=${nandroot} rootfstype=${nandrootfstype}
+nandboot=echo Booting from nand...; run nandargs; nand read ${fdtaddr} NAND.u-boot-spl-os; nand read ${addr_fit} NAND.kernel; bootm ${addr_fi 
+nandroot=/dev/mmcblk0p2 rw
+nandrootfstype=ext4 rootwait=10
+netargs=setenv bootargs console=${console} ${optargs} root=/dev/nfs nfsroot=${serverip}:${rootpath},${nfsopts} rw ip=dhcp
+netboot=echo Booting from network ...; setenv autoload no; dhcp; run netloadimage; run netloadfdt; run netargs; bootz ${loadaddr} - ${fdtaddr}
+netloadfdt=tftp ${fdtaddr} ${fdtfile}
+netloadimage=tftp ${loadaddr} ${bootfile}
+nfsopts=nolock
+partitions=uuid_disk=${uuid_gpt_disk};name=rootfs,start=2MiB,size=-,uuid=${uuid_gpt_rootfs}
+pxefile_addr_r=0x80100000
+ramargs=setenv bootargs console=${console} ${optargs} root=${ramroot} rootfstype=${ramrootfstype}
+ramdisk_addr_r=0x88080000
+ramroot=/dev/ram0 rw
+ramrootfstype=ext2
+rdaddr=0x88080000
+rootpath=/export/rootfs
+run_fit=run get_fit_config; bootm ${addr_fit}#${name_fit_config}${overlaystring}
+scan_dev_for_boot=echo Scanning ${devtype} ${devnum}:${distro_bootpart}...; for prefix in ${boot_prefixes}; do run scan_dev_for_extlinux; run;
+scan_dev_for_boot_part=part list ${devtype} ${devnum} -bootable devplist; env exists devplist || setenv devplist 1; for distro_bootpart in ${t
+scan_dev_for_efi=setenv efi_fdtfile ${fdtfile}; if test -z "${fdtfile}" -a -n "${soc}"; then setenv efi_fdtfile ${soc}-${board}${boardver}.dte
+scan_dev_for_extlinux=if test -e ${devtype} ${devnum}:${distro_bootpart} ${prefix}${boot_syslinux_conf}; then echo Found ${prefix}${boot_sysli
+scan_dev_for_scripts=for script in ${boot_scripts}; do if test -e ${devtype} ${devnum}:${distro_bootpart} ${prefix}${script}; then echo Founde
+scriptaddr=0x80000000
+soc=am33xx
+static_ip=${ipaddr}:${serverip}:${gatewayip}:${netmask}:${hostname}::off
+stderr=serial@44e09000
+stdin=serial@44e09000
+stdout=serial@44e09000
+update_to_fit=setenv loadaddr ${addr_fit}; setenv bootfile ${name_fit}
+usb_boot=usb start; if usb dev ${devnum}; then devtype=usb; run scan_dev_for_boot_part; fi
+vendor=ti
+ver=U-Boot 2023.04-00001-gd63f266198-dirty (Dec 16 2024 - 15:1
+
+
+
+
+
+
+
+setenv bootargs console=ttyUSB0,115200n8 root=/dev/mnt/rootfs rootwait
+
+
+
+
+sudo mkfs.ubifs -r /home/zumi/Abinash/AM4376/tisdk/build/arago-tmp-external-arm-glibc/deploy/images/am437x-evm/manual/rootfs -o rootfs.ubifs -F -m 2048 -e 129024  -c 4800 --space-fixup
+sudo ubinize -o rootfs.ubi -m 2048 -p 128KiB -s 512 -O 512 ubinize.cfg
+
+
+
+ split -n 4 rootfs.ubi split/1_
+
+
+
+fatload mmc 0:1 0x82000000 ubi_aa  
+fatload mmc 0:1 0x82DE0000 ubi_ab  
+fatload mmc 0:1 0x83BC0000 ubi_ac  
+fatload mmc 0:1 0x849A0000 ubi_ad 
+
+
+
+
+fatload mmc 0:1 0x82000000 1_aa
+fatload mmc 0:1 0x851F0000 1_ab
+fatload mmc 0:1 0x883E0000 1_ac
+fatload mmc 0:1 0x8B5D0000 1_ad
+
+
+
+root@zumi:/home/zumi/Downloads/Nibin/26Aug2024_ISSI_Executables/ti-u-boot-2023.04+gitAUTOINC+d74d0993e2-gd74d0993e2_TI_KEY_ISSI# 
+
+root@zumi:/home/zumi/Downloads/Nibin/26Aug2024_ISSI_Executables/linux/linux/linux-rt-5.10_isis/linux-rt-5.10_new.100+gitAUTOINC+204ec708dc-g204ec708dc_2may24/linux-rt-5.10_new.100+gitAUTOINC+204ec708dc-g204ec708dc#
+
+
+
+export CC=/home/zumi/Downloads/Nibin/26Aug2024_ISSI_Executables/ti-u-boot-2023.04+gitAUTOINC+d74d0993e2-gd74d0993e2_TI_KEY_ISSI/gcc-linaro-6.5.0-2018.12-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-
+
+
+
+
+unzip 0x82000000 0x83000000
+
+
+
+fatls mmc 0:1
+
+fatload mmc 0:1 0x82000000 MLO         
+
+
+nand write 0x82000000 NAND.SPL 0x26953
+
+
+fatload mmc 0:1 0x82000000 u-boot.img
+
+
+nand write 0x82000000 NAND.u-boot 0xc7aa0
+
+
+fatload mmc 0:1 0x82000000 fitImage.itb
+
+
+nand write 0x82000000 NAND.kernel  0x4db42
+
+
+fatload mmc 0:1 0x82000000 rootfs.ubi
+
+
+nand write 0x82000000 NAND.file-system-2 0x3620000
+
+
+nand erase.chip
+
+
+nand erase.part NAND.SPL
+nand erase.part NAND.u-boot
+nand erase.part NAND.kernel
+nand erase.part NAND.u-boot-spl-os
+nand erase.part NAND.file-system
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+partition@0 {
+    label = "NAND.SPL";
+    reg = <0x00000000 0x00040000>;  // 0.25 MB for SPL
+};
+
+partition@1 {
+    label = "NAND.SPL.backup1";
+    reg = <0x00040000 0x00040000>;  // 0.25 MB for backup1
+};
+
+partition@2 {
+    label = "NAND.SPL.backup2";
+    reg = <0x00080000 0x00040000>;  // 0.25 MB for backup2
+};
+
+partition@3 {
+    label = "NAND.SPL.backup3";
+    reg = <0x000c0000 0x00040000>;  // 0.25 MB for backup3
+};
+
+partition@4 {
+    label = "NAND.u-boot-1";
+    reg = <0x00100000 0x00200000>;  // 2 MB for uboot1
+};
+
+partition@5 {
+    label = "NAND.kernel-1";
+    reg = <0x00300000 0x00600000>;  // 6 MB for kernel1
+};
+
+partition@6 {
+    label = "NAND.file-system-1";
+    reg = <0x00900000 0x08C00000>;  // 140 MB for file system 1
+};
+
+partition@7 {
+    label = "NAND.u-boot-2";
+    reg = <0x0F200000 0x00200000>;  // 2 MB for uboot2
+};
+
+partition@8 {
+    label = "NAND.kernel-2";
+    reg = <0x0F400000 0x00600000>;  // 6 MB for kernel2
+};
+
+partition@9 {
+    label = "NAND.file-system-2";
+    reg = <0x0FA00000 0x08C00000>;  // 140 MB for file system 2
+};
+
+partition@10 {
+    label = "NAND.Application";
+    reg = <0x19400000 0x02000000>;  // 32 MB for Application
+};
+
+partition@11 {
+    label = "NAND.sw-env";
+    reg = <0x1B600000 0x00200000>;  // 2 MB for software environment
+};
+
+partition@12 {
+    label = "NAND.sw-update";
+    reg = <0x1B800000 0x08000000>;  // 128 MB for software update
+};
+
+
+nand boot ubi error but rootfs boot from sd card
+===================================================
+
+
+1)lsblk
+e.g/dev/sdX (replace X with your actual device).
+
+Create two partitions:
+Partition 1 (FAT32): For bootloader or other files if needed.
+Partition 2 (ext4): For the root filesystem.
+Use fdisk:
+
+2)sudo fdisk /dev/sdb
+
+Press o to create a new partition table.
+Press n to create the first partition.
+Set it to primary, partition number 1, and size (e.g., +100M for 100MB).
+Press t and select c to set the partition type to W95 FAT32 (LBA).
+Press n to create the second partition.
+Set it to primary, partition number 2, and size (use the remaining space).
+Press w to write the changes and exit.
+
+3)
+
+sudo mkfs.vfat -F 32 /dev/sdb1
+sudo mkfs.ext4 /dev/sdb2
+
+sudo mkdir -p /mnt/rootfs1
+sudo mount /dev/sdb1 /mnt/rootfs1
+
+sudo tar -xvf  /home/zumi/Downloads/Nibin/lnt_fs.ubi.tar.gz -C /mnt/rootfs1
+
+
+
+sudo mkdir -p /mnt/rootfs
+sudo mount /dev/sdb2 /mnt/rootfs
+
+sudo tar -xvf  /home/zumi/Downloads/Nibin/tisdk-base-image-am437x-evm-20241111073331.rootfs.tar.xz -C /mnt/rootfs
+
+sudo tar -xvf  tisdk-base-image-am437x-evm-20241208073618.rootfs.tar.xz -C /mnt/rootfs
+
+tisdk-base-image-am437x-evm-20241208073618.rootfs.tar.xz
+
+sudo sync
+sudo umount /mnt/rootfs
+
+
+
+SD card:
+=======
+
+
+set nandroot "/dev/mmcblk0p2 rw"
+set nandrootfstype "ext2 rootwait"
+
+
+set nandroot "/dev/mmcblk0p2 rw"
+set nandrootfstype "ext4 rootwait"
+
+
+NAND (UBI):
+==========
+
+
+set nandrootfstype "ubifs rootwait"
+
+set nandroot "ubi0:rootfs rw ubi.mtd=NAND.file-system,2048"
+
+
+export TI_SECURE_DEV_PKG=/opt/ti-processor-sdk-linux-am437x-hs-evm-06.03.00.106/board-support/proc-sdk-secdev-am437x-hs-evm-01.06.00.05/scripts/proc-sdk-secdev
+
+
+
+
+wget https://developer.arm.com/-/media/Files/downloads/gnu-a/8.3-2019.03/binrel/gcc-arm-8.3-2019.03-x86_64-arm-linux-gnueabihf.tar.xz
+tar -Jxvf gcc-arm-8.3-2019.03-x86_64-arm-linux-gnueabihf.tar.xz -C $HOME
+
+linux build
+================
+
+
+
+
+
+export ARCH=arm
+export CROSS_COMPILE=/home/zumi/gcc-arm-8.3-2019.03-x86_64-arm-linux-gnueabihf/bin/arm-linux-gnueabihf-
+export PATH=/home/zumi/gcc-arm-8.3-2019.03-x86_64-arm-linux-gnueabihf/bin:$PATH  
+ 
+ 
+ make distclean
+
+make tisdk_am437x-evm-rt_defconfig
+
+ make -j8
+
+
+
+
+
+
+
+
+
+
+
+
+//zumi          
+/* Get remaining bytes */
+actsize = filesize;
+printf("Attempting to read %d bytes from cluster %d\n", (int)actsize, curclust);
+
+if (get_cluster(mydata, curclust, buffer, (int)actsize) != 0) {
+    p();
+    printf("Error reading cluster %d, remaining size %d bytes\n", curclust, (int)actsize);
+    return -1;
+}
+
+*gotsize += actsize;
+printf("Successfully read %d bytes, total read so far: %d bytes\n", (int)actsize, *gotsize);
+
+return 0;
+//zumi
+
+
+
+
+
+
+
+
+
+log:
+
+
+
+
+
+
+
+
+=> nand erase.chip
+
+NAND erase.chip: device 0 whole chip
+Erasing at 0x1ffe0000 -- 100% complete.
+OK
+=> mmc rescan
+=> fatload mmc 0:1 0x82000000 MLO         
+158035 bytes read in 18 ms (8.4 MiB/s)
+=> nand write 0x82000000 NAND.SPL 0x26953
+
+NAND write: device 0 offset 0x0, size 0x26953
+ 158035 bytes written: OK
+=> fatload mmc 0:1 0x82000000 u-boot.img
+817824 bytes read in 69 ms (11.3 MiB/s)
+=> nand write 0x82000000 NAND.u-boot 0xc7aa0
+
+NAND write: device 0 offset 0x180000, size 0xc7aa0
+ 817824 bytes written: OK
+=> fatload mmc 0:1 0x82000000 fitImage.itb         
+5036946 bytes read in 397 ms (12.1 MiB/s)
+=> nand write 0x82000000 NAND.kernel  0x4cdb92
+
+NAND write: device 0 offset 0x300000, size 0x4cdb92
+ 5036946 bytes written: OK
+=> fatload mmc 0:1 0x82000000 lnt_fs.ubi
+Zumi Fun: get_contents Line: 426
+Error reading cluster
+Failed to load 'lnt_fs.ubi'
+=> 
+
+
+
+
+A70h CTRL_CONF_XDMA_EVT_INTR0 Section 7.3.1.202
+
+88Ch CTRL_CONF_GPMC_CLK Section 7.3.1.81
+
+
+9.3.4.148 EMIF4D_EXT_PHY_CTRL_28 Register (Offset = 2D8h) [reset = 0h]
+
+
+root@am437x-evm:~# zcat /proc/config.gz | grep MTD
+CONFIG_MTD=y
+CONFIG_MTD_TESTS=m
+# CONFIG_MTD_AR7_PARTS is not set
+CONFIG_MTD_CMDLINE_PARTS=y
+CONFIG_MTD_OF_PARTS=y
+# CONFIG_MTD_AFS_PARTS is not set
+# CONFIG_MTD_REDBOOT_PARTS is not set
+CONFIG_MTD_BLKDEVS=y
+CONFIG_MTD_BLOCK=y
+# CONFIG_MTD_OOPS is not set
+# CONFIG_MTD_SWAP is not set
+# CONFIG_MTD_PARTITIONED_MASTER is not set
+CONFIG_MTD_CFI=y
+# CONFIG_MTD_JEDECPROBE is not set
+CONFIG_MTD_GEN_PROBE=y
+# CONFIG_MTD_CFI_ADV_OPTIONS is not set
+CONFIG_MTD_MAP_BANK_WIDTH_1=y
+CONFIG_MTD_MAP_BANK_WIDTH_2=y
+CONFIG_MTD_MAP_BANK_WIDTH_4=y
+CONFIG_MTD_CFI_I1=y
+CONFIG_MTD_CFI_I2=y
+CONFIG_MTD_CFI_INTELEXT=y
+CONFIG_MTD_CFI_AMDSTD=y
+# CONFIG_MTD_CFI_STAA is not set
+CONFIG_MTD_CFI_UTIL=y
+# CONFIG_MTD_RAM is not set
+# CONFIG_MTD_ROM is not set
+# CONFIG_MTD_ABSENT is not set
+CONFIG_MTD_COMPLEX_MAPPINGS=y
+CONFIG_MTD_PHYSMAP=y
+# CONFIG_MTD_PHYSMAP_COMPAT is not set
+CONFIG_MTD_PHYSMAP_OF=y
+# CONFIG_MTD_PHYSMAP_VERSATILE is not set
+# CONFIG_MTD_PHYSMAP_GEMINI is not set
+# CONFIG_MTD_PHYSMAP_IXP4XX is not set
+# CONFIG_MTD_PHYSMAP_GPIO_ADDR is not set
+# CONFIG_MTD_PCI is not set
+# CONFIG_MTD_INTEL_VR_NOR is not set
+# CONFIG_MTD_PLATRAM is not set
+# Self-contained MTD device drivers
+# CONFIG_MTD_PMC551 is not set
+# CONFIG_MTD_DATAFLASH is not set
+# CONFIG_MTD_MCHP23K256 is not set
+# CONFIG_MTD_SST25L is not set
+# CONFIG_MTD_BCM47XXSFLASH is not set
+# CONFIG_MTD_SLRAM is not set
+# CONFIG_MTD_PHRAM is not set
+# CONFIG_MTD_MTDRAM is not set
+# CONFIG_MTD_BLOCK2MTD is not set
+# CONFIG_MTD_DOCG3 is not set
+# end of Self-contained MTD device drivers
+CONFIG_MTD_NAND_CORE=y
+# CONFIG_MTD_ONENAND is not set
+CONFIG_MTD_NAND_ECC_SW_HAMMING=y
+# CONFIG_MTD_NAND_ECC_SW_HAMMING_SMC is not set
+CONFIG_MTD_RAW_NAND=y
+# CONFIG_MTD_NAND_ECC_SW_BCH is not set
+CONFIG_MTD_NAND_DENALI=y
+# CONFIG_MTD_NAND_DENALI_PCI is not set
+CONFIG_MTD_NAND_DENALI_DT=y
+CONFIG_MTD_NAND_OMAP2=y
+CONFIG_MTD_NAND_OMAP_BCH=y
+CONFIG_MTD_NAND_OMAP_BCH_BUILD=y
+# CONFIG_MTD_NAND_CAFE is not set
+CONFIG_MTD_NAND_BRCMNAND=y
+# CONFIG_MTD_NAND_MXIC is not set
+# CONFIG_MTD_NAND_GPIO is not set
+# CONFIG_MTD_NAND_PLATFORM is not set
+# CONFIG_MTD_NAND_CADENCE is not set
+# CONFIG_MTD_NAND_ARASAN is not set
+# CONFIG_MTD_NAND_NANDSIM is not set
+# CONFIG_MTD_NAND_RICOH is not set
+# CONFIG_MTD_NAND_DISKONCHIP is not set
+# CONFIG_MTD_SPI_NAND is not set
+CONFIG_MTD_NAND_ECC=y
+# CONFIG_MTD_LPDDR is not set
+# CONFIG_MTD_LPDDR2_NVM is not set
+# CONFIG_MTD_SPI_NOR is not set
+CONFIG_MTD_UBI=y
+CONFIG_MTD_UBI_WL_THRESHOLD=4096
+CONFIG_MTD_UBI_BEB_LIMIT=20
+# CONFIG_MTD_UBI_FASTMAP is not set
+# CONFIG_MTD_UBI_GLUEBI is not set
+# CONFIG_MTD_UBI_BLOCK is not set
+CONFIG_MTD_HYPERBUS=y
+# CONFIG_LEDS_TRIGGER_MTD is not set
+
+
+=> 
+=> nand erase.part NAND.kernel
+
+NAND erase.part: device 0 offset 0x300000, size 0x700000
+Erasing at 0x9e0000 -- 100% complete.
+OK
+=> fatload mmc 0:1 0x82000000 fitImage.itb         
+5032690 bytes read in 394 ms (12.2 MiB/s)
+=> nand write 0x82000000 NAND.kernel  0x4ccaf2
+
+NAND write: device 0 offset 0x300000, size 0x4ccaf2
+ 5032690 bytes written: OK
+=> fatload mmc 0:1 0x82000000 lnt_fs.ubi
+209453056 bytes read in 16091 ms (12.4 MiB/s)
+=> nand write 0x82000000 NAND.file-system 0xc7c0000
+
+NAND write: device 0 offset 0xa00000, size 0xc7c0000
+omap-elm: uncorrectable ECC errors
+NAND write to offset a00000 failed -5
+ 0 bytes written: ERROR
+=> nand write 0x82000000 NAND.file-system 0xc7c0000
+
+NAND write: device 0 offset 0xa00000, size 0xc7c0000
+omap-elm: uncorrectable ECC errors
+NAND write to offset a00000 failed -5
+ 0 bytes written: ERROR
+=> nand write 0x82000000 NAND.file-system 0xc7c0000
+
+NAND write: device 0 offset 0xa00000, size 0xc7c0000
+omap-elm: uncorrectable ECC errors
+NAND write to offset a00000 failed -5
+ 0 bytes written: ERROR
+=> nand bad
+
+Device 0 bad blocks:
+=> nand erase.part NAND.file-system
+
+NAND erase.part: device 0 offset 0xa00000, size 0x1f600000
+Erasing at 0x1ffe0000 -- 100% complete.
+OK
+=> nand write 0x82000000 NAND.file-system 0xc7c0000
+
+NAND write: device 0 offset 0xa00000, size 0xc7c0000
+ 209453056 bytes written: OK
+=> re
+
+
+=> nand erase.part NAND.kernel
+
+NAND erase.part: device 0 offset 0x300000, size 0x700000
+Erasing at 0x9e0000 -- 100% complete.
+OK
+=> fatload mmc 0:1 0x82000000 fitImage.itb         
+5032690 bytes read in 394 ms (12.2 MiB/s)
+=> nand write 0x82000000 NAND.kernel  0x4ccaf2
+
+NAND write: device 0 offset 0x300000, size 0x4ccaf2
+ 5032690 bytes written: OK
+=> fatload mmc 0:1 0x82000000 lnt_fs.ubi
+209453056 bytes read in 16091 ms (12.4 MiB/s)
+=> nand write 0x82000000 NAND.file-system 0xc7c0000
+
+NAND write: device 0 offset 0xa00000, size 0xc7c0000
+omap-elm: uncorrectable ECC errors
+NAND write to offset a00000 failed -5
+ 0 bytes written: ERROR
+=> nand write 0x82000000 NAND.file-system 0xc7c0000
+
+NAND write: device 0 offset 0xa00000, size 0xc7c0000
+omap-elm: uncorrectable ECC errors
+NAND write to offset a00000 failed -5
+ 0 bytes written: ERROR
+=> 
+
+
+
+
+
+
+=> nand erase.part NAND.kernel
+
+NAND erase.part: device 0 offset 0x300000, size 0x700000
+Erasing at 0x9e0000 -- 100% complete.
+OK
+=> fatload mmc 0:1 0x82000000 fitImage.itb         
+5032690 bytes read in 394 ms (12.2 MiB/s)
+=> nand write 0x82000000 NAND.kernel  0x4ccaf2
+
+NAND write: device 0 offset 0x300000, size 0x4ccaf2
+ 5032690 bytes written: OK
+=> fatload mmc 0:1 0x82000000 lnt_fs.ubi
+209453056 bytes read in 16091 ms (12.4 MiB/s)
+=> nand write 0x82000000 NAND.file-system 0xc7c0000
+
+NAND write: device 0 offset 0xa00000, size 0xc7c0000
+
+
+
+
+
+
+
+=> fatload mmc 0:1 0x82000000 MLO                  
+Attempting to read 158627 bytes from cluster 18412
+Successfully read 158627 bytes, total read so far: 158627 bytes
+158627 bytes read in 29 ms (5.2 MiB/s)
+=> nand write 0x82000000 NAND.SPL 0x26ba3          
+
+NAND write: device 0 offset 0x0, size 0x26ba3
+ 158627 bytes written: OK
+=> fatload mmc 0:1 0x82000000 u-boot.img           
+Attempting to read 817856 bytes from cluster 18512
+Successfully read 817856 bytes, total read so far: 817856 bytes
+817856 bytes read in 80 ms (9.7 MiB/s)
+=> nand write 0x82000000 NAND.u-boot 0xc7ac0       
+
+NAND write: device 0 offset 0x180000, size 0xc7ac0
+ 817856 bytes written: OK
+=> fatload mmc 0:1 0x82000000 fitImage.itb  
+Attempting to read 5032690 bytes from cluster 17797
+Zumi Fun: get_contents Line: 441
+Error reading cluster 17797, remaining size 5032690 bytes
+Failed to load 'fitImage.itb'
+=> fatload mmc 0:1 0x82000000 fitImage.itb
+
+
+
+
+
+nand erase.chip
+
+NAND erase.chip: device 0 whole chip
+Erasing at 0x1ffe0000 -- 100% complete.
+OK
+
+
+=> fatload mmc 0:1 0x82000000 MLO         
+Attempting to read 158831 bytes from cluster 295284
+Successfully read 158831 bytes, total read so far: 158831 bytes
+158831 bytes read in 29 ms (5.2 MiB/s)
+=> nand write 0x82000000 NAND.SPL 0x26c6f
+
+NAND write: device 0 offset 0x0, size 0x26c6f
+ 158831 bytes written: OK
+=> fatload mmc 0:1 0x82000000 u-boot.img
+Attempting to read 818112 bytes from cluster 295334
+Successfully read 818112 bytes, total read so far: 818112 bytes
+818112 bytes read in 81 ms (9.6 MiB/s)
+=> nand write 0x82000000 NAND.u-boot 0xc7bc0
+
+NAND write: device 0 offset 0x180000, size 0xc7bc0
+ 818112 bytes written: OK
+=> fatload mmc 0:1 0x82000000 fitImage.itb         
+Attempting to read 5036786 bytes from cluster 37135
+Successfully read 5036786 bytes, total read so far: 5036786 bytes
+5036786 bytes read in 409 ms (11.7 MiB/s)
+=> nand write 0x82000000 NAND.kernel  0x4cdaf2
+
+NAND write: device 0 offset 0x300000, size 0x4cdaf2
+ 5036786 bytes written: OK
+=> fatload mmc 0:1 0x82000000 lnt_fs.ubi
+Attempting to read 209453056 bytes from cluster 37453
+Zumi Fun: get_contents Line: 441
+Error reading cluster 37453, remaining size 209453056 bytes
+Failed to load 'lnt_fs.ubi'
+=> 
+
+
+
+DDR test:    int result = ddr_read_write_test(0x90000000, DDR_SIZE);
+========
+U-Boot SPL 2023.04-00001-gd63f266198-dirty (Dec 04 2024 - 19:12:10 +0530)
+Boot mode as per spl_boot_device is 65
+Test DDR
+Starting DDR memory test...
+word = 0, addr = 90000000 
+word = 5242880, addr = 91400000 
+word = 10485760, addr = 92800000 
+word = 15728640, addr = 93c00000 
+word = 20971520, addr = 95000000                        
+word = 26214400, addr = 96400000                      
+word = 31457280, addr = 97800000                       
+word = 36700160, addr = 98c00000                    
+word = 41943040, addr = 9a000000                      
+word = 47185920, addr = 9b400000 
+word = 52428800, addr = 9c800000 
+word = 57671680, addr = 9dc00000 
+word = 62914560, addr = 9f000000 
+
+Verify the test pattern in DDR memory 
+Reading word = 0, addr = 90000000 
+Reading word = 5242880, addr = 91400000 
+Reading word = 10485760, addr = 92800000 
+Reading word = 15728640, addr = 93c00000 
+Reading word = 20971520, addr = 95000000 
+Reading word = 26214400, addr = 96400000 
+Reading word = 31457280, addr = 97800000 
+Reading word = 36700160, addr = 98c00000 
+Reading word = 41943040, addr = 9a000000 
+Reading word = 47185920, addr = 9b400000 
+Reading word = 52428800, addr = 9c800000 
+Reading word = 57671680, addr = 9dc00000 
+Reading word = 62914560, addr = 9f000000 
+
+DDR memory test passed successfully.
+Trying to boot from UART
+CC
+
+
+DDR test:   int result = ddr_read_write_test(0x80000000, DDR_SIZE);
+=========
+Boot mode as per spl_boot_device is 65
+Test DDR
+Starting DDR memory test...
+word = 0, addr = 80000000 
+word = 5242880, addr = 81400000 
+word = 10485760, addr = 82800000 
+word = 15728640, addr = 83c00000 
+word = 20971520, addr = 85000000 
+word = 26214400, addr = 86400000 
+word = 31457280, addr = 87800000 
+word = 36700160, addr = 88c00000 
+word = 41943040, addr = 8a000000 
+word = 47185920, addr = 8b400000 
+word = 52428800, addr = 8c800000 
+word = 57671680, addr = 8dc00000 
+word = 62914560, addr = 8f000000 
+
+Verify the test pattern in DDR memory 
+Reading word = 0, addr = 80000000 
+Reading word = 5242880, addr = 81400000 
+Reading word = 10485760, addr = 82800000 
+Reading word = 15728640, addr = 83c00000 
+Reading word = 20971520, addr = 85000000 
+Reading word = 26214400, addr = 86400000 
+Reading word = 31457280, addr = 87800000 
+Reading word = 36700160, addr = 88c00000 
+Reading word = 41943040, addr = 8a000000 
+Reading word = 47185920, addr = 8b400000 
+Reading word = 52428800, addr = 8c800000 
+Reading word = 57671680, addr = 8dc00000 
+Reading word = 62914560, addr = 8f000000 
+
+DDR memory test passed successfully.
+Trying to boot from UART
+CCCCCCCCCCCCCCCCCC
+
+
+
+
+
+
+
+
+
+setenv bootargs console=ttyUSB0,115200n8 root=/dev/mnt/rootfs rootwait
+

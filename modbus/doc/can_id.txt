@@ -1,0 +1,94 @@
+**Understanding the Extended CAN Message 29-bit Identifier**
+
+The Extended CAN Message ID (29-bit) is structured as follows:
+
+**Fields and Bit Allocation:**
+
+| Field          | Bits  | Description                                                                      |
+|----------------|-------|----------------------------------------------------------------------------------|
+| Module Address | 2     | Identifies the module within the network (00, 01, 10, 11)                        |
+| Module ID      | 4     | Identifies the type of module (0000 to 1111)                                     |
+| Data Header    | 3     | Provides additional information about the data (000 to 111)                      |
+| Message Type   | 4     | Specifies the type of message (0000 to 1111)                                     |
+| Data ID        | 16    | Represents the specific data identifier (0000000000000000 to 1111111111111111)   |
+
+**Example Calculation: TCP to ETU Communication over CAN**
+
+- **Module Address:** `00`
+- **Module ID:** `0001` (`0x01`)
+- **Data Header:** `010` (`0x02`)
+- **Message Type:** `0000` (`0x00`)
+- **Data ID (UID):** `0000001100110011` (`0x0333`)
+
+**Step-by-Step Conversion:**
+
+1. Convert all fields to binary:
+   ```
+   00 0001 010 0000 0000001100110011
+   ```
+2. Arrange fields in 29-bit format:
+   ```
+   0000 0101 0000 0000 0011 0011 0011
+   ```
+3. Convert binary to hexadecimal:
+   ```
+   0x01200333
+   ```
+
+**Bitwise Calculation in C:**
+```c
+uint32_t can_id = (Module_Address << 27) |
+                  (Module_ID << 23) |
+                  (Data_Header << 20) |
+                  (Message_Type << 16) |
+                  (Data_ID);
+```
+
+**Substituting Values:**
+```c
+uint32_t can_id = (0x00 << 27) |
+                  (0x01 << 23) |
+                  (0x02 << 20) |
+                  (0x00 << 16) |
+                  (0x0333);
+```
+
+Result:
+```c
+uint32_t can_id = 0x01200333;
+```
+
+This is how the **Extended CAN ID** is computed and represented in hexadecimal format.
+
+
+
+
+
+-----------------------------------------------------
+
+#include <stdio.h>
+#include <stdint.h>
+
+int main() {
+    // Defining the values based on the provided example
+    uint32_t Module_Address = 0x00;  // 2-bit
+    uint32_t Module_ID = 0x01;       // 4-bit
+    uint32_t Data_Header = 0x02;     // 3-bit
+    uint32_t Message_Type = 0x00;    // 4-bit
+    uint32_t Data_ID = 0x0333;       // 16-bit
+
+    // Corrected Module_ID shift (24 bits instead of 23)
+    uint32_t can_id = (Module_Address << 27) | 
+                      (Module_ID << 24) |  // Corrected shift
+                      (Data_Header << 20) |
+                      (Message_Type << 16) |
+                      (Data_ID);
+
+    // Print the computed CAN ID
+    printf("Computed CAN ID: 0x%08X\n", can_id);
+
+    return 0;
+}
+
+
+-------------------------------------------------------

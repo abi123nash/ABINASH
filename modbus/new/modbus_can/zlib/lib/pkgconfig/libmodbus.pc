@@ -1,0 +1,10 @@
+prefix=/home/zumi/Abinash/am4376_board_bringup_new_project/modbus/new/modbus_can/zlib
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: modbus
+Description: Modbus library
+Version: 3.1.11
+Libs: -L${libdir} -lmodbus
+Cflags: -I${includedir}/modbus

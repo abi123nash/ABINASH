@@ -1,0 +1,19 @@
+[Header]
+    Version = 4.3
+    Hash Algorithm = sha256
+    Engine Configuration = 0
+
+[Install SRK]
+    File = "SRK1234table.bin"
+    Source index = 0
+
+[Install CSFK]
+    File = "SRK1234fuse.bin"   # Remove the Source index line
+
+[Authenticate CSF]
+    Verification Index = 0
+
+[Authenticate Data]
+    Verification Index = 0
+    Blocks = 0x10000000 0x200000  # Replace with actual boot image address and size
+

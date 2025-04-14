@@ -1,0 +1,15 @@
+Received message: Im IMX93 Port 8001 - State: forwarding
+Port 8002 - State: blocking
+
+Received message: Im PC Port 8001 - State: blocking
+Port 8002 - State: forwarding
+
+Sent: Broadcast message from the A Device
+Sent: Broadcast message from the A Device
+Received message: Im IMX93 Port 8001 - State: forwarding
+Port 8002 - State: forwarding
+
+Received message: Im PC Port 8001 - State: forwarding
+Port 8002 - State: forwarding
+
+

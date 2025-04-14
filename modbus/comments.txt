@@ -1,0 +1,51 @@
+ip link set can0 up type can bitrate 125000
+ip link set can0 up
+cansend can0 123#DEADBEEF
+
+
+System Overview:
+
+    Modbus TCP Server: Runs on a PC.
+    Modbus TCP Client: Runs on the AM437x board.
+    CAN Bus Communication: The AM437x board interfaces with the CAN Bus.
+
+Testing Process:
+
+    The server (PC) sends a Modbus read address request to the client (AM437x board).
+    Since the client does not yet have a valid Modbus address, we are using static values for testing.
+    The client retrieves the Modbus data and sends it to the CAN Bus.
+    The client then receives the response from the CAN Bus.
+    Finally, the client forwards the received CAN data back to the server (PC).
+
+Communication Flow:
+
+PC (Server)  <---- Modbus (Send & Receive) ---->  AM437x (Client)  
+AM437x (Client)  <---- CAN Bus (Send & Receive) ---->  CAN Network  
+
+
+Good Morning Swapnil,
+
+We did first level of testing on the Modbus protocol. We are ready with the below flow and we can show this to the customer.
+
+System Overview:
+
+    Modbus TCP Server: Runs on a PC - Our own application which is running on Linux PC
+    Modbus TCP Client: Runs on the AM437x board.
+    CAN Analyzer: Connected to The AM437x board CAN interface (We have only one Pearl ethernet board, So we used the CAN Analyzer. Later we can replace the CAN Analyzer to any other CAN device).
+
+Testing Process:
+
+    The server (PC) sends a Modbus read address request to the client (AM437x board).
+    The (AM437x Device) client receives Modbus data and sends it to the CAN Bus.
+    CAN Analyzer receives the Data (We can see on the CAN Analyzer window)
+    We Manually feed the data to the CAN analyzer and send it back to the (AM437x board) client board.
+    The (AM437x board) client then receives the response from the CAN Bus.
+    Finally, the (AM437x board) client forwards the received CAN data back to the server (PC).
+
+Communication Flow:
+PC (Server)           ----(Sends Modbus data) ---->  AM437x (Client)
+AM437x (Client)  (Sends)-------------------------> CAN Analyzer (Receives)   
+CAN Analyzer (Sends) ----------------------------> AM437x (Client) (Receives)
+ AM437x (Client) (Sends) ---(Sends Modbus Response)--> PC (Server)
+
+We can show this demo to the client. Please let me know when we can have the demo session.

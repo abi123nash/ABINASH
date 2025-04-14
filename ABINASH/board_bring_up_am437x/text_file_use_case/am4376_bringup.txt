@@ -1,0 +1,217 @@
+kernel/drivers/net/ethernet/ti/prueth.ko: kernel/net/hsr/hsr.ko kernel/drivers/net/ethernet/ti/icss_iep.ko kernel/drivers/soc/ti/pruss.ko kernel/drivers/remoteproc/pru_rproc.ko 
+
+
+/lib/modules/5.10.100-rt62-g204ec708dc/kernel/drivers/net/ethernet/ti
+
+
+cp prueth.ko /lib/modules/5.10.100-rt62-g204ec708dc/kernel/drivers/net/ethernet/ti
+
+irq_pruss_intc         16384  0
+hsr                    57344  0
+icss_iep               24576  0
+pru_rproc              24576  0
+pruss                  16384  1 pru_rproc
+
+
+
+cd /run/media/mmcblk0p1
+
+insmod pruss.ko
+
+rmmod pruss
+
+
+cd /run/media/mmcblk0p1
+
+insmod hsr.ko
+
+insmod pruss.ko
+
+insmod icss_iep.ko  
+
+insmod pru_rproc.ko
+
+insmod prueth.ko
+
+
+rmmod hsr
+
+rmmod pruss
+
+rmmod icss_iep
+
+rmmod pru_rproc
+
+rmmod prueth
+
+        
+modprobe pru_rproc
+modprobe rpmsg_pru
+
+
+nand flash
+=================
+
+
+fatload mmc 0:0 0x82000000 u-boot-spl.bin
+nand write 0x82000000 NAND.SPL 0x2aa74
+
+
+fatload mmc 0:0 0x82000000 u-boot.bin
+nand write 0x82000000 NAND.u-boot 0x2aa74
+
+
+
+
+
+
+
+
+
+MLO woring 
+============
+CONFIG_SPL_TEXT_BASE=0x402F4000
+
+get_dpll_ddr_params
+
+
+consol uart flash commant
+==========================
+
+sx -kb MLO < /dev/ttyUSB2 > /dev/ttyUSB2
+
+sx -kb --ymodem u-boot.img < /dev/ttyUSB2 > /dev/ttyUSB2
+
+
+sudo ../gcc-linaro-6.5.0-2018.12-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-objdump -d u-boot-spl > z.dis
+
+arch/arm/cpu/armv7/start.S
+
+
+
+make as a secure 
+==================
+
+
+this step is make our build is secure
+=====================================
+
+wget https://launchpad.net/gcc-arm-embedded/4.7/4.7-2013-q1-update/+download/gcc-arm-none-eabi-4_7-2013q1-20130313-linux.tar.bz2
+tar -xjf gcc-arm-none-eabi-4_7-2013q1-20130313-linux.tar.bz2
+
+cd /opt/ti-processor-sdk-linux-am437x-hs-evm-06.03.00.106/board-support/proc-sdk-secdev-am437x-hs-evm-01.06.00.05/scripts
+
+export GCC_ARM_NONE_TOOLCHAIN=/opt/ti-processor-sdk-linux-am437x-hs-evm-06.03.00.106/gcc-arm-none-eabi-4_7-2013q1
+export TI_SECURE_DEV_PKG=/opt/ti-processor-sdk-linux-am437x-hs-evm-06.03.00.106/board-support/proc-sdk-secdev-am437x-hs-evm-01.06.00.05/scripts/proc-sdk-secdev
+
+./build_secdev.sh
+
+
+unset GCC_ARM_NONE_TOOLCHAIN
+unset TI_SECURE_DEV_PKG
+
+
+
+
+am4376 rebuild command
+-----------------------
+
+sudo su
+
+cd /home/zumi/Abinash/am4376_board_bringup_new_project/26Aug2024_ISSI_Executables/ti-u-boot-2023.04+gitAUTOINC+d74d0993e2-gd74d0993e2_TI_KEY_ISSI
+
+
+sudo wget -c https://releases.linaro.org/components/toolchain/binaries/6.5-2018.12/arm-linux-gnueabihf/gcc-linaro-6.5.0-2018.12-x86_64_arm-linux-gnueabihf.tar.xz
+
+sudo tar xf gcc-linaro-6.5.0-2018.12-x86_64_arm-linux-gnueabihf.tar.xz
+
+export CC=/home/zumi/Abinash/am4376_board_bringup_new_project/build/26Aug2024_ISSI_Executables/ti-u-boot-2023.04+gitAUTOINC+d74d0993e2-gd74d0993e2_TI_KEY_ISSI/gcc-linaro-6.5.0-2018.12-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-
+
+
+
+make ARCH=arm CROSS_COMPILE=${CC} distclean
+make ARCH=arm CROSS_COMPILE=${CC} am43xx_evm_defconfig
+make ARCH=arm CROSS_COMPILE=${CC} -j8
+
+cp spl/u-boot-spl.bin /home/zumi/tftp/mlo_send/1
+
+cp u-boot.bin /home/zumi/tftp/mlo_send/2
+
+
+
+
+
+evk re-build for u-boot only
+=============================
+
+cd /home/zumi/Abinash/AM4376/tisdk/build/arago-tmp-external-arm-glibc/work/am437x_evm-linux-gnueabi/u-boot-ti-staging/1_2020.01+gitAUTOINC+2781231a33-r36/git
+
+export ARCH=arm
+export CROSS_COMPILE=/home/zumi/gcc-arm-8.3-2019.03-x86_64-arm-linux-gnueabihf/bin/arm-linux-gnueabihf-
+export PATH=/home/zumi/gcc-arm-8.3-2019.03-x86_64-arm-linux-gnueabihf/bin:$PATH
+
+make distclean
+
+make am43xx_hs_evm_defconfig
+
+make -j8
+
+
+
+
+make distclean
+
+make am43xx_evm_defconfig
+
+make -j8
+
+
+
+
+
+Dcan link
+=========
+
+https://software-dl.ti.com/processor-sdk-linux/esd/AM437X/08_02_00_24/exports/docs/linux/Foundational_Components/Kernel/Kernel_Drivers/DCAN.html
+
+
+
+
+EIP_DLR_processDLRFrame
+========================= 
+
+this function mainting the input fram reciving
+
+
+setenv ipaddr 192.168.0.100    # Set the IP address of the U-Boot board
+setenv netmask 255.255.255.0   # Set the subnet mask
+setenv gatewayip 192.168.0.1   # Set the gateway (you can set this to your router's IP, if needed)
+setenv serverip 192.168.0.141  # Set the IP address of your Linux PC (as a TFTP server or other service if needed)
+
+
+
+
+setenv ipaddr 192.168.0.100    
+setenv netmask 255.255.255.0 
+setenv gatewayip 192.168.0.1 
+setenv serverip 192.168.0.141  
+
+zumi@zumi-pc:~/Abinash/am4376_board_bringup_new_project/build/new/26Aug2024_ISSI_Executables/ti-u-boot-2023.04+gitAUTOINC+d74d0993e2-gd74d0993e2_TI_KEY_ISSI/drivers/mtd/nand$ vim raw/nand_base.c
+zumi@zumi-pc:~/Abinash/am4376_board_bringup_new_project/build/new/26Aug2024_ISSI_Executables/ti-u-boot-2023.04+gitAUTOINC+d74d0993e2-gd74d0993e2_TI_KEY_ISSI/drivers/mtd/nand$ vim raw/nand_base.c
+zumi@zumi-pc:~/Abinash/am4376_board_bringup_new_project/build/new/26Aug2024_ISSI_Executables/ti-u-boot-2023.04+gitAUTOINC+d74d0993e2-gd74d0993e2_TI_KEY_ISSI/drivers/mtd/nand$ 
+zumi@zumi-pc:~/Abinash/am4376_board_bringup_new_project/build/new/26Aug2024_ISSI_Executables/ti-u-boot-2023.04+gitAUTOINC+d74d0993e2-gd74d0993e2_TI_KEY_ISSI/drivers/mtd/nand$ 
+zumi@zumi-pc:~/Abinash/am4376_board_bringup_new_project/build/new/26Aug2024_ISSI_Executables/ti-u-boot-2023.04+gitAUTOINC+d74d0993e2-gd74d0993e2_TI_KEY_ISSI/drivers/mtd/nand$ vim arch/arm/dts/am437x-gp-evm.dts 
+zumi@zumi-pc:~/Abinash/am4376_board_bringup_new_project/build/new/26Aug2024_ISSI_Executables/ti-u-boot-2023.04+gitAUTOINC+d74d0993e2-gd74d0993e2_TI_KEY_ISSI/drivers/mtd/nand$ cd ../../..
+zumi@zumi-pc:~/Abinash/am4376_board_bringup_new_project/build/new/26Aug2024_ISSI_Executables/ti-u-boot-2023.04+gitAUTOINC+d74d0993e2-gd74d0993e2_TI_KEY_ISSI$ vim arch/arm/dts/am437x-gp-evm.dts 
+zumi@zumi-pc:~/Abinash/am4376_board_bringup_new_project/build/new/26Aug2024_ISSI_Executables/ti-u-boot-2023.04+gitAUTOINC+d74d0993e2-gd74d0993e2_TI_KEY_ISSI$ cd -
+/home/zumi/Abinash/am4376_board_bringup_new_project/build/new/26Aug2024_ISSI_Executables/ti-u-boot-2023.04+gitAUTOINC+d74d0993e2-gd74d0993e2_TI_KEY_ISSI/drivers/mtd/nand
+zumi@zumi-pc:~/Abinash/am4376_board_bringup_new_project/build/new/26Aug2024_ISSI_Executables/ti-u-boot-2023.04+gitAUTOINC+d74d0993e2-gd74d0993e2_TI_KEY_ISSI/drivers/mtd/nand$ vim arch/arm/dts/am437x-gp-evm.dts 
+zumi@zumi-pc:~/Abinash/am4376_board_bringup_new_project/build/new/26Aug2024_ISSI_Executables/ti-u-boot-2023.04+gitAUTOINC+d74d0993e2-gd74d0993e2_TI_KEY_ISSI/drivers/mtd/nand$ vim raw/nand_base.c
+zumi@zumi-pc:~/Abinash/am4376_board_bringup_new_project/build/new/26Aug2024_ISSI_Executables/ti-u-boot-2023.04+gitAUTOINC+d74d0993e2-gd74d0993e2_TI_KEY_ISSI/drivers/mtd/nand$ 
+
+
+
+
+
+
+

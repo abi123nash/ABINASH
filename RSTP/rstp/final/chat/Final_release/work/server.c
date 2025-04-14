@@ -1,0 +1,256 @@
+/** @file server.c
+ *  @brief 
+ *
+ *  This source file implements a UDP server that broadcasts messages on the local network.
+ *  The server receives the client's STP (Spanning Tree Protocol) port status and sends an acknowledgment back to the client.
+ *  
+ *  @author Abinash
+ *
+ *  @bug No known bugs.
+ */
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdint.h>
+#include <unistd.h>
+#include <pthread.h>
+#include <arpa/inet.h>
+
+#define MAX_LINE 256
+#define BROADCAST_IP "192.168.0.255"
+#define UDP_PORT_TX 12345
+#define UDP_PORT_RX 1234
+#define MESSAGE "Broadcast message from the A Device"
+
+#define MAX_DEVICES 10  // Max number of devices to track
+
+// Structure to hold device info
+typedef struct {
+    char device_name[32];
+    char ip_address[16];
+    char port1_state[32];
+    char port2_state[32];
+} Device;
+
+// List of devices
+Device devices[MAX_DEVICES];
+int num_devices = 0;
+
+/** @brief monitor_ports
+ *
+ *  This thread function monitors the port states by creating a UDP server
+ *  that listens for incoming messages, prints them, and sends an acknowledgment.
+ *
+ *  @param arg : Unused, required for pthread function signature.
+ *
+ *  @return none (exits thread on failure)
+ */
+void *monitor_ports(void *arg) 
+{
+    int sockfd;
+    struct sockaddr_in server_addr, client_addr;
+    socklen_t client_len = sizeof(client_addr);
+    char buffer[MAX_LINE];
+    char ack_message[] = "ACK";  // Acknowledgment message
+
+    /*
+     * Create UDP socket
+     */
+    sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+    if (sockfd < 0) 
+    {
+        perror("Socket creation failed");
+        pthread_exit(NULL);
+    }
+
+    /*
+     * Configure server address
+     */
+    memset(&server_addr, 0, sizeof(server_addr));
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_port = htons(UDP_PORT_RX);
+    server_addr.sin_addr.s_addr = INADDR_ANY;  // Listen on all interfaces
+
+    /*
+     * Bind socket to the address and port
+     */
+    if (bind(sockfd, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0) 
+    {
+        perror("Bind failed");
+        close(sockfd);
+        pthread_exit(NULL);
+    }
+
+    printf("\n\tServer listening on port %d\n\n", UDP_PORT_RX);
+
+    while (1) 
+    {
+        int len = recvfrom(sockfd, buffer, MAX_LINE, 0, (struct sockaddr*)&client_addr, &client_len);
+        if (len < 0) 
+        {
+            perror("Recvfrom failed");
+            continue;  // Keep the server running
+        }
+
+buffer[len] = '\0';  // Null terminate the received message
+
+// Extract device info from the message (assuming format is consistent)
+char device_name[32], ip_address[16], port1_state[32], port2_state[32];
+
+// We need to extract the device name first, so let's find "IP:" and split the string
+char *ip_pos = strstr(buffer, "IP:");
+if (ip_pos != NULL) {
+    // Now extract device name by copying the string before "IP:"
+    int device_name_len = ip_pos - buffer; // Length of the device name
+    if (device_name_len < sizeof(device_name)) {
+        strncpy(device_name, buffer, device_name_len);
+        device_name[device_name_len] = '\0'; // Null terminate
+    } else {
+        printf("Device name too long\n");
+        continue;
+    }
+
+    // Now extract the rest of the message using sscanf
+    int ret = sscanf(ip_pos, "IP: %15s Port 8001 - State: %31s Port 8002 - State: %31s",
+                      ip_address, port1_state, port2_state);
+
+    printf("1 %s\n", device_name);
+    printf("2 %s\n", ip_address);
+    printf("3 %s\n", port1_state);
+    printf("4 %s\n", port2_state);
+
+    if (ret != 3) {
+        printf("Error parsing message: %s\n", buffer);
+        continue;
+    }
+
+    // Check if the device already exists in the list
+    int found = 0;
+    for (int i = 0; i < num_devices; i++) {
+        if (strcmp(devices[i].ip_address, ip_address) == 0) {
+            // Device exists, update its states
+            strcpy(devices[i].port1_state, port1_state);
+            strcpy(devices[i].port2_state, port2_state);
+            found = 1;
+            break;
+        }
+    }
+
+    // If device not found, add it to the list (if space allows)
+    if (!found && num_devices < MAX_DEVICES) {
+        strcpy(devices[num_devices].device_name, device_name);
+        strcpy(devices[num_devices].ip_address, ip_address);
+        strcpy(devices[num_devices].port1_state, port1_state);
+        strcpy(devices[num_devices].port2_state, port2_state);
+        num_devices++;
+    }
+
+    // Clear the screen (platform-specific, using ANSI escape code for Linux/Mac)
+    printf("\033[H\033[J");
+
+    // Print the updated list of devices
+    printf("\nUpdated Device States:\n");
+    for (int i = 0; i < num_devices; i++) {
+        printf("%d> %s IP: %s Port 8001 - State: %s Port 8002 - State: %s\n", 
+               i + 1, devices[i].device_name, devices[i].ip_address, 
+               devices[i].port1_state, devices[i].port2_state);
+    }
+
+    /*
+     * Send ACK back to client
+     */
+    if (sendto(sockfd, ack_message, strlen(ack_message), 0, (struct sockaddr *)&client_addr, client_len) < 0) 
+    {
+        perror("Send ACK failed");
+    } 
+    else 
+    {
+        printf("Sent ACK to client\n");
+    }
+    
+    printf("-------------------------------------------------------------------\n\n");
+}
+else {
+    printf("Error: IP address not found in message: %s\n", buffer);
+    continue;
+}
+}
+    close(sockfd);
+    pthread_exit(NULL);
+}
+
+/** @brief main
+ *
+ *  Main function to initialize a monitoring thread and send periodic UDP broadcasts.
+ *
+ *  - Creates a thread to monitor UDP ports.
+ *  - Creates a UDP socket for broadcasting messages.
+ *  - Configures broadcast settings and sends messages every second.
+ *
+ *  @return int : Returns EXIT_SUCCESS or EXIT_FAILURE on error.
+ */
+int main()
+{
+    pthread_t monitor_thread;
+    int sockfd;
+    struct sockaddr_in broadcast_addr;
+    int broadcast_enable = 1;
+
+    /*
+     * Create a thread to monitor ports
+     */
+    if (pthread_create(&monitor_thread, NULL, monitor_ports, NULL) != 0)
+    {
+        perror("Failed to create monitor thread");
+        return EXIT_FAILURE;
+    }
+
+    /*
+     * Create UDP socket for broadcasting
+     */
+    sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+    if (sockfd < 0)
+    {
+        perror("Socket creation failed");
+        exit(EXIT_FAILURE);
+    }
+
+    /*
+     * Enable broadcast option
+     */
+    if (setsockopt(sockfd, SOL_SOCKET, SO_BROADCAST, &broadcast_enable, sizeof(broadcast_enable)) < 0)
+    {
+        perror("Broadcast enable failed");
+        close(sockfd);
+        exit(EXIT_FAILURE);
+    }
+
+    /*
+     * Configure broadcast address
+     */
+    memset(&broadcast_addr, 0, sizeof(broadcast_addr));
+    broadcast_addr.sin_family = AF_INET;
+    broadcast_addr.sin_port = htons(UDP_PORT_TX);
+    broadcast_addr.sin_addr.s_addr = inet_addr(BROADCAST_IP);
+
+    /*
+     * Send broadcast message every second
+     */
+    while (1)
+    {
+        if (sendto(sockfd, MESSAGE, strlen(MESSAGE), 0, (struct sockaddr*)&broadcast_addr, sizeof(broadcast_addr)) < 0)
+        {
+            perror("Broadcast failed");
+        } 
+        else 
+        {
+            // printf("Sent: %s\n", MESSAGE);
+        }
+        
+        sleep(1);
+    }
+
+    close(sockfd);
+    return 0;
+}

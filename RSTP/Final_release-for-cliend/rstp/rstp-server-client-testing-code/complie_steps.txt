@@ -1,0 +1,11 @@
+sudo apt install gcc-arm-linux-gnueabihf
+
+
+arm-linux-gnueabihf-gcc -static client_AM437x.c -o client -lpthread
+
+./client
+
+gcc -static server.c -o server -lpthread
+
+
+./server

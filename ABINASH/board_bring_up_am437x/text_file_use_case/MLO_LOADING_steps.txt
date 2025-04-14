@@ -1,0 +1,139 @@
+previous board AM4376 we are using for sw-update that board working Fine  
+=======================================================================
+
+CCCCCCCCCCCCCCCCCCCCCAB          <--------------------------we are getting the expected output                                                                                                        
+U-Boot SPL 2023.04-00001-gd63f266198-dirty (Nov 26 2024 - 20:53:22 +0530)                                                                   
+Boot mode as per spl_boot_device is 0                                                                                                       
+SPL: failed to boot from all boot devices            
+
+
+
+This is for our new board SE ethernet module AM4376 board
+============================================
+
+CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC     but same image but not getting any output here
+
+
+MLO loading steps 
+===================
+
+
+1)Press CTRL-A Z
+
+
+Welcome to minicom 2.7.1                                          +-------------------------------------------------------------------+
+                                                                  |                      Minicom Command Summary                      |
+OPTIONS: I18n                                                     |                                                                   |
+Compiled on Dec 23 2019, 02:06:26.                                |              Commands can be called by CTRL-A <key>               |
+Port /dev/ttyUSB0, 21:27:23                                       |                                                                   |
+                                                                  |               Main Functions                  Other Functions     |
+Press CTRL-A Z for help on special keys                           |                                                                   |
+                                                                  | Dialing directory..D  run script (Go)....G | Clear Screen.......C |
+                                                                  | Send files.........S  Receive files......R | cOnfigure Minicom..O |
+                                                                  | comm Parameters....P  Add linefeed.......A | Suspend minicom....J |
+                                                                  | Capture on/off.....L  Hangup.............H | eXit and reset.....X |
+                                                                  | send break.........F  initialize Modem...M | Quit with no reset.Q |
+                                                                  | Terminal settings..T  run Kermit.........K | Cursor key mode....I |
+                                                                  | lineWrap on/off....W  local Echo on/off..E | Help screen........Z |
+                                                                  | Paste file.........Y  Timestamp toggle...N | scroll Back........B |
+                                                                  | Add Carriage Ret...U                                              |
+                                                                  |                                                                   |
+                                                                  |             Select function or press Enter for none.              |
+                                                                  +-------------------------------------------------------------------+
+
+
+
+
+2)press S
+
+                                                                         
+                             +-[Upload]--+                                                                                             
+                             | zmodem    |                                                             
+                             | ymodem    |                                                          
+                             | xmodem    |             
+                             | kermit    |                                                            
+                             | ascii     |                                                            
+                             +-----------+   
+                             
+                             
+3)select xmodem    
+
+
+Welcome to minicom 2.7.1                                       +------------------------[Select a file for upload]-------------------------+
+                                                               |Directory: /home/zumi                                                      |
+OPTIONS: I18n                                                  | [..]                                                                      |
+Compiled on Dec 23 2019, 02:06:26.                             | [.TI]                                                                     |
+Port /dev/ttyUSB0, 21:27:23                                    | [.TI-trace]                                                               |
+                                                               | [.anydesk]                                                                |
+Press CTRL-A Z for help on special keys                        | [.arduino15]                                                              |
+                                                               | [.cache]                                                                  |
+CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC|CCCCCCCCCC           | [.config]                                                                 |
+
+
+
+
+
+
+4)press Enter and give MLO path then Enter
+
+                            
+                                                               | [.dbus]        +-----------------------------------------+                |
+                                                               | [.dotnet]      |No file selected - enter filename:       |                |
+                                                               | [.gnupg]       |> <path>/MLO                             |                |
+                                                               | [.gvfs]        +-----------------------------------------+  
+
+5)after MLO loading is compliet press Enter
+
+
+                                                                    
+         +-----------[xmodem upload - Press CTRL-C to quit]------------+                                                                    
+         |Sending /home/zumi/tftp/mlo_send/MLO, 1368 blocks: Give your |                               
+         |local XMODEM receive command now.                            |              
+         |Bytes Sent: 175232   BPS:8751                                |            
+         |                                                             |                                
+         |Transfer complete                                            |                                  
+         |                                                             |                                                                    
+         | READY: press any key to continue...                         |                                                                    
+         +-------------------------------------------------------------+     
+                        
+                             
+
+                             
+                             
+                             
+
+
+
+
+
+
+
+nand erase.chip
+nand erase.part NAND.SPL
+nand erase.part NAND.u-boot
+nand erase.part NAND.kernel
+nand erase.part NAND.file-system
+
+
+
+fatload mmc 0:1 0x82000000 MLO
+nand write 0x82000000 NAND.SPL 0x2ac74
+
+
+fatload mmc 0:1 0x82000000 u-boot.img
+nand write 0x82000000 NAND.u-boot 0x9f43c
+
+nand read 0x80800000 NAND.kernel 0x487882
+
+
+
+nand erase.part NAND.kernel
+fatload mmc 0:1 0x82000000 fitImage.itb
+nand write 0x82000000 NAND.kernel 0x4cdd2e
+
+
+
+
+nand erase.part NAND.file-system
+fatload mmc 0:1 0x82000000 rootfs.ubi
+nand write 0x82000000 NAND.file-system 0x1980000

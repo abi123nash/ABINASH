@@ -1,0 +1,33 @@
+arm-linux-gnueabihf-gcc -static server.c -o server
+
+gcc client.c -o client-B
+
+udp pack not reciveing means 
+===================================
+
+dynamic
+========
+sudo ufw allow proto udp from any to any
+
+
+manual
+=======
+sudo ufw allow 5555/udp
+sudo ufw allow 8080/udp
+
+
+UDP protocol
+-------------
+
+server
+
+nc -u -l -p 12345
+
+clint 
+
+nc -u 192.168.0.141 12345
+
+then You can then type messages in the client terminal, which will be sent to the server.
+
+
+

@@ -1,0 +1,52 @@
+
+1. Set Up the Environment
+-------------------------
+
+    Connect the Devices:
+
+        Connect the board to the Ethernet switch using an Ethernet cable.
+        Connect your PC or test system to the same switch.
+
+    Power On the Switch:
+        Ensure the Ethernet switch is powered on and functioning properly.
+        
+       
+2. Configure Network Settings
+----------------------------
+
+    Assign IP Addresses:        
+    
+    PC configuration:
+                    $ sudo ifconfig <interface> 192.168.1.10 netmask 255.255.255.0 up
+  
+    Board configuration (on the board terminal):
+                   
+                    $ ifconfig eth0 192.168.1.20 netmask 255.255.255.0 up
+
+    Verify Network Configuration:
+
+         On both systems, use:
+
+                    $ ifconfig
+                    Ensure the assigned IPs and interfaces are correctly displayed.
+                 
+3. Test Connectivity
+--------------------
+    Ping Test:
+
+        From the PC:
+
+        ping 192.168.1.20
+
+        From the board:
+
+        ping 192.168.1.10
+        
+        
+4. Debug Issues (if any)
+------------------------
+    Check Cables: Ensure the cables are securely connected and functional.
+      
+    Firewall Rules: Disable any firewalls temporarily on the PC and board for testing purposes:
+
+sudo ufw disable        

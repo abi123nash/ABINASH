@@ -1,0 +1,1 @@
+arm-linux-gnueabihf-gcc -static am437x_modbus_can.c -o am437x_TCP_ETU_COMMUNICATE -lpthread

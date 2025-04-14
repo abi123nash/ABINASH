@@ -1,0 +1,2 @@
+gcc -o master master.c -lmodbus
+gcc slave.c -o slave -lmodbus

@@ -1,0 +1,40 @@
+
+TCP Heartbeat: 0x017E0333 | 0x00 0x00 0x00 0x01 0x00 0x00 0x00 0x00 | Classic CAN | 8 bytes | RTR Data
+
+TCP Request: 0x01200333 | --------------------------------------- | Classic CAN | 0 bytes | RTR Remote
+
+ETU Response 1: 0x01210333 | 0x01 0x01 0x00 0x00 0x00 0x01 0xFF 0xFC | Classic CAN | 8 bytes | RTR Data
+
+TCP Frame Ack 1:0x01290333 | 0x01 0x00 0x00 0x00 0x00 0x00 0xFF 0xFE | Classic CAN | 8 bytes | RTR Data
+
+
+PC (Modbus TCP Client)  
+   │  
+   │  [Step 1] Sends Modbus read request with register address  
+   │  
+   ▼  
+AM437x Board (Modbus TCP Server)  
+   │  
+   │  [Step 2] Receives Modbus request, converts it to CAN frame  
+   │  [Step 3] Sends CAN frame to CAN network  
+   │  
+   ▼  
+CAN Network  
+   │  
+   │  [Step 4] CAN module (e.g., ETU) receives request, processes it  
+   │  [Step 5] Sends 56-byte response over CAN  
+   │  
+   ▼  
+AM437x Board  
+   │  
+   │  [Step 6] Receives CAN response  
+   │  [Step 7] Converts it into Modbus register values  
+   │  [Step 8] Sends Modbus TCP response back to PC  
+   │  
+   ▼  
+PC  
+   │  
+   │  [Step 9] Receives response and displays data to the user  
+   ▼  
+User Interface (Final Output)  
+
