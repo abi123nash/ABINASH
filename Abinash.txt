@@ -1,0 +1,405 @@
+
+Environment size: 5738/16380 bytes
+u-boot=> editenv fdtfile     
+edit: imx8mm-evk.dtb    
+u-boot=> saveenv 
+Saving Environment to MMC... Writing to MMC(2)... OK
+u-boot=> reset
+resetting ...
+
+
+
+
+
+
+
+
+web_server 
+
+killall swupdate
+
+echo "imx8mmevk 1.0" > /etc/hwrevision
+
+swupdate -v -w "-r /www -p 8080"
+
+http://192.168.0.153:8080/
+
+
+fw_setenv bootslot singlerescue
+fw_setenv upgrade_available 1
+reboot
+
+
+
+
+
+
+
+
+
+
+
+
+echo "imx8mmevk 1.0" > /etc/hwrevision
+
+
+/etc/fw_env.config
+echo -e "/dev/mmcblk2 0x400000 0x2000"  "/dev/mmcblk2 0x402000 0x2000" > /etc/fw_env.config
+echo "/dev/mmcblk2 0x402000 0x2000" > /etc/fw_env.config
+
+
+
+
+~/Ajmal/Project/edm_yocto/build-xwayland-pico-imx8mm/tmp/work/armv8a-poky-linux/swupdate/2022.05-r0/git/core$ vi parser.c
+~/Ajmal/Project/edm_yocto/build-xwayland-pico-imx8mm/tmp/work/armv8a-poky-linux/swupdate/2022.05-r0/image/usr/bin
+bitbake -c menuconfig swupdate
+
+
+sw_update link 
+
+zumi@zumi-H81M-S:~/Ajmal/Project/edm_yocto/build-xwayland-pico-imx8mm/tmp/work/armv8a-poky-linux/swupdate/2022.05-r0/git$ vim core/parser.c 
+
+
+
+
+sir link
+
+https://sbabic.github.io/swupdate/swupdate.html
+
+
+https://community.nxp.com/t5/CodeWarrior-for-MCU/rtshc08-c-MC9S08GB60-bootloader-in-C/td-p/130737
+
+https://community.nxp.com/t5/i-MX-Processors-Knowledge-Base/SWUpdate-OTA-i-MX8MM-EVK-i-MX8QXP-MEK/ta-p/1307416
+
+
+==============
+
+
+
+
+CONFIG_SYS_MMC_ENV_PART
+
+https://forum.elk.audio/t/how-to-install-from-a-local-swu-file-via-shell-command/742
+
+
+swupdate -c -i my-software_1.0.swu
+
+
+
+
+cpio -idv < my-software_1.0.swu
+
+WIFI_FIRMWARE=y DISTRO=fsl-imx-xwayland MACHINE=pico-imx8mm source tn-setup-release.sh -b build-xwayland-pico-imx8mm
+
+
+bitbake -c clean swupdate-image
+bitbake swupdate-image
+
+
+bitbake -c clean opencvswu_signed_image_build.sh
+bitbake opencv
+VERSION =echo "imx8mmevk 1.0" > /etc/hwrevision
+
+
+
+
+apt list --upgradable
+ 2052  sudo apt update
+ 2053  sudo apt upgrade
+ 2054  sudo apt update
+ 2055  sync
+ 2056  sudo apt --fix-broken insta~/Ajmal/Project/edm_yocto/build-xwayland-pico-imx8mm/tmp/work/pico_imx8mm-poky-linux/imx-image-swu/1.0-r0/imx-image-swull
+
+
+
+sudo apt autoremove
+
+sudo apt --fix-broken install
+
+sudo apt install libformw5 libmenuw5 libncursesw5 libpanelw5 python3-core python3-dbus python3-pygobject perl
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+i get one working script in internet so modify accarlingaclly my board what are things you want tellme i will give one by one my board is pico imx8mm "sw-description configuration file¶
+
+The sw-description file is used to define elements and their metadata which are included in the .swu archive. Complete syntax details can be found in the "syntax and tags with the default parser" section of the SWUpdate manual.
+
+The following example instructs the SWUpdate Installer Framework to install five files to the respective specified paths and to run the update.sh script for "preinst" and "postinst":
+
+software =
+{
+    version = "1.0";
+        files: (
+                {
+                        filename = "updatefactoryinfo";
+                        path = "/mnt/root/usr/bin/updatefactoryinfo";
+                },
+                {
+                        filename = "OS_VERSION.txt";
+                        path = "/mnt/root/home/root/OS_VERSION.txt";
+                },
+                {
+                        filename = "index.html";
+                 i.mx8mm_evk_1.0_slotS_LF_v5.10.9_1.0.0-singlecopy-emmc-full_20240517-103149.swu       path = "/mnt/root/www/pages/index.html";
+                },
+                {
+                        filename = "style.css";
+                        path = "/mnt/root/www/pages/style.css";
+                },
+                {
+                        filename = "UF-logo.png";
+                        path = "/mnt/root/www/pages/UF-logo.png";
+                }
+        );
+        scripts: (
+                {
+                        filename = "update.sh";
+                        type = "shellscript";
+                }
+        );
+}
+
+When the file device and filesystem parameters are not specified as in the example above the file is copied to the absolute path of the current rootfs swupdate is running from. This allows the freedom of mounting involved partitions in the "preinst" phase of the update.sh script.
+
+Note
+
+The version element is not the version of the update file. It is currently unused, so you can just ignore it.
+update.sh script file¶
+
+Suppokillall swupdatert for optional scripts in SWUpdate is a handy way to add particular features or fill in small gaps that default behaviour of handlers might have.
+
+The following script shows how to mount partitions by label in "preinst" and unmount in "postinst", and how to change permissions on an installed file in "postinst":
+
+#!/bin/sh
+
+if [ $# -lt 1 ]; then
+    exit 0;
+fi
+
+mount_by_label() {
+    LABEL=$1
+    mkdir /mnt/$LABEL
+        mount "LABEL=$LABEL" /mnt/$LABEL/
+}
+
+unmount_by_label() {
+    LABEL=$1
+    umount /mnt/$LABEL/
+    rmdir /mnt/$LABEL
+}
+
+if [ $1 == "preinst" ]; then
+    echo "Mounting root"
+    mount_by_label root
+    mkdir -p /mnt/root/www/pages
+fi
+
+if [ $1 == "postinst" ]; then
+    chmod 755 /mnt/root/usr/bin/updatefactoryinfo
+    unmount_by_label root
+fi
+
+generate_swu-1.sh update creation script file¶
+
+Once all the files of the update are ready (sw-description, update.sh and the files to install) the final update file should be created using the following script from the same directory:
+
+#!/bin/bash
+
+CONTAINER_VER="1.1"
+PRODUCT_NAME="uf-example-file-update"
+FILES="sw-description updatefactoryinfo OS_VERSION.txt update.sh index.html UF-logo.png style.css"
+
+for i in $FILES;do
+        echo $i;done | cpio -ov -H crc >  ${PRODUCT_NAME}_${CONTAINER_VER}.swu
+
+Variables
+
+Both the CONTAINER_VER and PRODUCT_NAME variables are arbitrary. Go ahead and set them to something relevant for the update that you intend to prepare.
+
+Warning
+
+According to the specifications sw-description should always be the first file in the cpio archive, so don't put files before it in the FILES variable!
+
+The output of the command should look something like this:
+
+$ ./generate_swu-1.sh
+sw-description
+updatefactoryinfo
+OS_VERSION.txt
+update.sh
+index.html
+UF-logo.png
+style.css
+58 blocks
+
+The resulting file uf-example-fizumi@zumi-H81M-S:~/Ajmal/Project/edm_yocto/build-xwayland-pico-imx8mm/tmp/work/armv8a-poky-linux/swupdate/2022.05-r0/git$ vim core/parser.c 
+le-update_1.1.swu can be uploaded to Update Factory and assigned to a target to update a device."
+
+
+
+
+
+
+==================================
+
+final flash 
+
+
+zumi@zumi-H81M-S:~/imx-mfg-uuu-tool_20210421/imx-mfg-uuu-tool$ sudo ./uuu/linux64/uuu -b emmc_img ./imx8mm/pico-imx8mm/pico-imx8mm-flash.bin /home/zumi/Ajmal/Project/edm_yocto/build-xwayland-pico-imx8mm/tmp/deploy/images/pico-imx8mm/imx-image-full-pico-imx8mm-20240514081329.rootfs.wic.bz2
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+root@pico-imx8mm:~# 
+root@pico-imx8mm:~# swupdate -c -i imx-image-swu-pico-imx8mm.swu
+SWUpdate v2023.12.1-dirty
+
+Licensed under GPLv2. See source distribution for detailed copyright notices.
+
+[INFO ] : SWUPDATE started :  Software Update started !
+[ERROR] : SWUPDATE failed [0] ERROR : Found nothing to install
+[ERROR] : SWUPDATE failed [0] ERROR : JSON File corrupted
+[ERROR] : SWUPDATE failed [0] ERROR : no parser available to parse sw-description!
+[ERROR] : SWUPDATE failed [0] ERROR : Compatible SW not found
+[ERROR] : SWUPDATE failed [1] Image invalid or corrupted. Not installing ...
+swupdate_image_write failed: Broken pipe
+[ERROR] : SWUPDATE failed [0] ERROR : SWUpdate *failed* !
+[INFO ] : No SWUPDATE running :  Waiting for requests...
+
+
+
+
+
+
+
+
+=====================
+swu
+
+~/Ajmal/Project/edm_yocto/build-xwayland-pico-imx8mm/tmp/work/pico_imx8mm-poky-linux/imx-image-swu/1.0-r0/imx-image-swu
+
+~/Ajmal/Project/edm_yocto/sources/meta-imx/meta-sdk/dynamic-layers/qt6-layer/recipes-fsl/images
+
+~/Ajmal/meta-swupdate/recipes-support/swupdate/swupdate$ vi swupdate.sh
+
+
+
+
+
+
+web_server 
+
+killall swupdate
+
+echo "imx8mmevk 1.0" > /etc/hwrevision
+
+swupdate -v -w "-r /www -p 8080"
+
+http://192.168.0.153:8080/
+
+
+
+~/imx-mfg-uuu-tool_20210421/imx-mfg-uuu-tool$ sudo ./uuu/linux64/uuu -b emmc_img ./imx8mm/pico-imx8mm/pico-imx8mm-flash.bin ~/Ajmal/Project/edm_yocto/build-xwayland-pico-imx8mm/tmp/deploy/images/pico-imx8mm/swupdate-image-pico-imx8mm.wic.bz2
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+zumi@zumi-hp-z800-workstation:~$ 
+zumi@zumi-hp-z800-workstation:~$ sudo vi /home/zumi/imx-yocto5_10-bsp/sources/meta-imx/meta-bsp/recipes-multimedia/gstreamer/gstreamer1.0_1.20.3.imx.bb
+zumi@zumi-hp-z800-workstation:~$ sudo vi /home/zumi/imx-yocto5_10-bsp/sources/meta-imx/meta-bsp/recipes-multimedia/gstreamer/gstreamer1.0_1.20.3.imx.bb
+zumi@zumi-hp-z800-workstation:~$ vi /home/zumi/imx-yocto5_10-bsp/sources/meta-imx/meta-bsp/recipes-multimedia/gstreamer/imx-gst1.0-plugin_git.bb
+zumi@zumi-hp-z800-workstation:~$ vi /home/zumi/imx-yocto5_10-bsp/sources/meta-imx/meta-bsp/recipes-multimedia/gstreamer/gstreamer1.0-plugins-base_1.20.3.imx.bb
+zumi@zumi-hp-z800-workstation:~$ vi /home/zumi/imx-yocto5_10-bsp/sources/meta-imx/meta-bsp/recipes-multimedia/gstreamer/imx-gst1.0-plugin_git.bb
+zumi@zumi-hp-z800-workstation:~$ vi /home/zumi/imx-yocto5_10-bsp/sources/meta-imx/meta-bsp/recipes-multimedia/gstreamer/imx-gst1.0-plugin_git.bb
+zumi@zumi-hp-z800-workstation:~$ vi RREPLACES
+zumi@zumi-hp-z800-workstation:~$ vi /home/zumi/imx-yocto5_10-bsp/sources/meta-imx/meta-bsp/recipes-multimedia/gstreamer/imx-gst1.0-plugin_git.bb
+zumi@zumi-hp-z800-workstation:~$ 
+zumi@zumi-hp-z800-workstation:~$ vi /home/zumi/imx-yocto5_10-bsp/sources/meta-imx/meta-bsp/recipes-multimedia/gstreamer/gstreamer1.0-plugins-base_1.20.3.imx.bb^C
+zumi@zumi-hp-z800-workstation:~$ 
+
+
+
+
+
+
+
+
+
+
+
