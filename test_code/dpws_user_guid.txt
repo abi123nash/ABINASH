@@ -1,0 +1,296 @@
+
+                                                                                         Introduction
+
+The following document explains how to implement and test a simple DPWS (Devices Profile for Web Services) server and client using gSOAP on a Linux machine. The document also includes step-by-step instructions on building, running, and interacting with the service using different methods, including a terminal, curl, and a web interface.
+
+
+
+1) DPWS Setup
+Commands to Install gSOAP:
+
+cd ~/Downloads
+rm gsoap.tar.gz  # Remove the previous corrupted file
+wget https://sourceforge.net/projects/gsoap2/files/latest/download -O gsoap.tar.gz
+
+sudo apt install p7zip-full
+7z x gsoap.tar.gz
+./configure 
+make -j$(nproc)
+sudo make install
+
+
+
+
+
+2) Create the WSDL File (hello.wsdl)
+
+Create and save the following hello.wsdl file:
+
+<definitions name="HelloService"
+    targetNamespace="http://example.org/hello"
+    xmlns:tns="http://example.org/hello"
+    xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/"
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+    xmlns="http://schemas.xmlsoap.org/wsdl/">
+
+  <message name="sayHelloRequest" />
+  <message name="sayHelloResponse">
+    <part name="greeting" type="xsd:string"/>
+  </message>
+
+  <portType name="HelloPortType">
+    <operation name="sayHello">
+      <input message="tns:sayHelloRequest"/>
+      <output message="tns:sayHelloResponse"/>
+    </operation>
+  </portType>
+
+  <binding name="HelloBinding" type="tns:HelloPortType">
+    <soap:binding style="rpc" transport="http://schemas.xmlsoap.org/soap/http"/>
+    <operation name="sayHello">
+      <soap:operation soapAction="sayHello"/>
+      <input><soap:body use="encoded" namespace="urn:HelloService" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"/></input>
+      <output><soap:body use="encoded" namespace="urn:HelloService" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"/></output>
+    </operation>
+  </binding>
+
+  <service name="HelloService">
+    <port name="HelloPort" binding="tns:HelloBinding">
+      <soap:address location="http://localhost:8080/HelloService"/>
+    </port>
+  </service>
+</definitions>
+
+
+
+
+
+
+3) Generate C Code from WSDL
+
+Run the following commands to generate the required code from the hello.wsdl file:
+
+wsdl2h -o hello.h hello.wsdl
+soapcpp2 -2 -i hello.h
+
+
+
+
+
+
+4) Implement the Service (helloService.cpp)
+
+Create the helloService.cpp file with the following content:
+
+#include "soapHelloBindingService.h"
+#include "HelloBinding.nsmap"
+
+int HelloBindingService::sayHello(std::string &greeting) {
+    greeting = "Hello from DPWS service! Abinash";
+    return SOAP_OK;
+}
+
+int main() {
+    HelloBindingService service(SOAP_XML_INDENT);
+    if (service.run(8081) != SOAP_OK) {
+        service.soap_stream_fault(std::cerr);
+    }
+    return 0;
+}
+
+
+
+
+
+
+
+
+
+5) Compile the Service
+
+Compile the helloService.cpp file using the following command:
+
+g++ -o helloService helloService.cpp soapC.cpp soapHelloBindingService.cpp -lgsoap++ -lgsoap -pthread
+
+
+
+
+
+
+
+
+
+
+6) Run the Service
+
+Run the service with the following command:
+
+./helloService
+
+
+
+
+
+
+7) Output Methods
+
+You can view the output from the following methods:
+
+    Client Code – Interact with the service programmatically.
+
+    Terminal (curl Command) – Test using curl directly from the terminal.
+
+    Website – View the result on a website using HTML and JavaScript.
+
+
+
+
+
+
+
+
+
+8) Client Code (helloClient.cpp)
+
+Create the helloClient.cpp file with the following content:
+
+#include "soapHelloBindingProxy.h"
+#include "HelloBinding.nsmap"
+
+int main() {
+    HelloBindingProxy proxy;
+    std::string greeting;
+
+    if (proxy.sayHello(greeting) == SOAP_OK) {
+        std::cout << "Response: " << greeting << std::endl;
+    } else {
+        proxy.soap_stream_fault(std::cerr);
+    }
+    return 0;
+}
+
+
+
+
+
+
+
+
+
+
+9) Compile the Client
+
+Compile the helloClient.cpp file using the following command:
+
+g++ -o helloClient helloClient.cpp soapC.cpp soapHelloBindingProxy.cpp -lgsoap++ -lgsoap -pthread
+
+
+
+
+
+
+
+
+10) Run the Client
+
+Run the client with the following command:
+
+./helloClient
+
+Alternatively, you can use curl to test the service:
+
+curl -X POST http://localhost:8081/HelloService -H "Content-Type: text/xml" --data @HelloBinding.sayHello.req.xml
+
+
+
+
+
+
+
+11) Website Output
+
+Create the following HTML file (hello.html) to interact with the service via a web browser. Save the HTML content below into hello.html and then change the file permissions as required.
+HTML Code (hello.html):
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Say Hello from DPWS</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f0f4f8;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px;
+    }
+    h1 {
+      color: #2c3e50;
+    }
+    button {
+      padding: 10px 20px;
+      background-color: #3498db;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      margin-top: 20px;
+      font-size: 16px;
+    }
+    button:hover {
+      background-color: #2980b9;
+    }
+    #result {
+      margin-top: 30px;
+      font-size: 18px;
+      color: #27ae60;
+    }
+  </style>
+</head>
+<body>
+  <h1>Say Hello from DPWS</h1>
+  <button onclick="sayHello()">Say Hello</button>
+  <div id="result">Waiting...</div>
+
+  <script>
+    function sayHello() {
+      const xmlData = `<?xml version="1.0" encoding="UTF-8"?>
+<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/"
+  xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  xmlns:ns1="urn:HelloService">
+  <SOAP-ENV:Body>
+    <ns1:sayHello/>
+  </SOAP-ENV:Body>
+</SOAP-ENV:Envelope>`;
+
+      fetch("http://localhost:8081/HelloService", {
+        method: "POST",
+        headers: {
+          "Content-Type": "text/xml"
+        },
+        body: xmlData
+      })
+      .then(res => res.text())
+      .then(str => {
+        // Parse the response XML
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(str, "text/xml");
+        const greeting = xmlDoc.getElementsByTagName("greeting")[0];
+        const message = greeting ? greeting.textContent : "No greeting found.";
+        document.getElementById("result").textContent = "Response: " + message;
+      })
+      .catch(err => {
+        document.getElementById("result").textContent = "Error: " + err;
+      });
+    }
+  </script>
+</body>
+</html>
+
+
+
+To test the website, right-click on the file and open with a web browser.
