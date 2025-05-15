@@ -1,3 +1,93 @@
+modbus binary google drive link
+===============================
+
+https://drive.google.com/drive/folders/1zyS4f8ZWVOddWUCi1w00PzDRGv2YIupI?usp=sharing
+
+
+
+
+
+
+
+
+
+
+
+drivers/net/ethernet/freescale/dpaa/dpaa_eth.c
+
+
+/run/media/mmcblk0p1
+flash_erase /dev/mtd1 0 0
+nandwrite -p /dev/mtd1 MLO
+
+flash_erase /dev/mtd5 0 0
+nandwrite -p /dev/mtd5 fitImage.itb
+
+flash_erase /dev/mtd8 0 0
+nandwrite -p /dev/mtd8 fitImage.itb
+
+flash_erase /dev/mtd9 0 0
+nandwrite -p /dev/mtd9 rootfs.ubi
+
+
+flash_erase /dev/mtd6 0 0
+nandwrite -p /dev/mtd6 rootfs.ubi
+
+nand erase.part NAND.kernel-2
+fatload mmc 0:1 0x82000000 fitImage.itb
+nand write 0x82000000 NAND.kernel-2 0x4cdffa
+
+
+
+
+
+
+
+
+
+
+
+
+mkdir -p /var/db/
+touch /var/db/ntp-kod
+
+
+
+
+sudo sntp -S pool.ntp.org && date
+
+sntp -S pool.ntp.org && date
+
+
+flash_erase /dev/mtd10 0 0
+
+
+
+
+
+
+
+sudo ./uuu -b emmc_all imx-boot-imx93evk-sd.bin-flash_singleboot imx-image-full-imx93evk.rootfs-20241203140233.wic
+
+
+
+
+
+Amit,
+
+We sincerely appreciate your support on this project. Our team is working hard to deliver quick and quality results—we currently have over six engineers actively involved.
+
+At this stage, the initial Modbus testing code is ready, but we’re facing limitations due to the availability of test hardware. Currently, we have only two boards, and one of them has an issue with the eth0 interface. This is slowing down our progress.
+
+We kindly request your help in arranging four additional boards for testing. If possible, providing one CAN module as well would be extremely helpful for our Modbus validation.
+
+Thank you for your continued support.
+
+
+
+
+
+
 smpt i need do impliment the c code abinash@zumisolutions.com password Abinash@123 this is my mail and send test mail on same one send person and recive person both same ""
 
 
@@ -1485,6 +1575,10 @@ nandwrite -p /dev/mtd9 rootfs.ubi
 flash_erase /dev/mtd6 0 0
 nandwrite -p /dev/mtd6 rootfs.ubi
 
+nand erase.part NAND.kernel-2
+fatload mmc 0:1 0x82000000 fitImage.itb
+nand write 0x82000000 NAND.kernel-2 0x4cdffa
+
 
 flash u-boot for kernle in am4376
 -------------------------------
@@ -2055,7 +2149,7 @@ common/spl/spl_nand.c
 include/configs/am43xx_evm.h
 hw_watchdog_init
 
-manula crash kernel linux crash
+manual crash kernel linux crash
 =======================
 echo c > /proc/sysrq-trigger
 
@@ -2552,7 +2646,7 @@ device nand0 <nand.0>, # parts = 10
 
 
 
-
+drivers/watchdog/omap_wdt.c
 
 
 
@@ -11767,7 +11861,7 @@ void debug_print(const char* file, const char* func, int line) {
 
 =================
 
-log.c   log for debug
+log.c   log for debug log app in c program
 
 /*
 ================================================================================
@@ -17322,6 +17416,242 @@ SECTIONS {
 
 
 
+
+
+
+
+
+===================================advanced Makefile for debug==============================================
+
+Make file 
+
+
+
+
+# ================= User Configurable =================
+
+# TARGET_NAME: name of the final output executable binary
+TARGET_NAME = am437x_TCP_ETU_COMMUNICATE
+
+# TARGET: full path for the output binary (inside obj/ directory)
+TARGET = $(OBJDIR)/$(TARGET_NAME)
+
+# SRC: list of source files (just one .c file here)
+SRC = am437x_modbus_can.c
+
+# Compiler for cross-compiling ARM binaries (change to gcc for native build)
+CC       = arm-linux-gnueabihf-gcc
+
+# Tools for analysis/debugging; use cross tools matching the compiler target
+OBJDUMP  = arm-linux-gnueabihf-objdump
+READELF  = arm-linux-gnueabihf-readelf
+NM       = arm-linux-gnueabihf-nm
+SIZE     = arm-linux-gnueabihf-size
+STRINGS  = strings  # works on any ELF binary, no cross prefix needed
+
+# Paths to Modbus library include files and libs (update if you move them)
+MODBUS_INCLUDE = /home/zumi/Abinash/am4376_board_bringup_new_project/modbus/modbus_can/lib/include
+MODBUS_LIB     = /home/zumi/Abinash/am4376_board_bringup_new_project/modbus/modbus_can/lib/lib
+
+# Directory for all generated intermediate and output files
+OBJDIR = obj
+
+# Object file path generated from SRC, inside OBJDIR
+OBJ = $(OBJDIR)/$(SRC:.c=.o)
+
+# Compiler flags:
+# -Wall: enable warnings
+# -O2: optimize level 2
+# -I...: add modbus include path to header search path
+CFLAGS = -Wall -O2 -I$(MODBUS_INCLUDE)
+
+# Linker flags:
+# -L...: add modbus lib path
+# -lmodbus -lpthread -lm: link libraries modbus, pthread, math
+# -static: statically link libraries (no dynamic deps)
+# -Wl,-Map,...: generate a map file for linker layout
+LDFLAGS = -L$(MODBUS_LIB) -lmodbus -lpthread -lm -static -Wl,-Map,$(OBJDIR)/$(TARGET_NAME).map
+
+# Intermediate analysis/debugging file paths (all inside OBJDIR)
+PREPROCESSED = $(OBJDIR)/$(TARGET_NAME).i          # Preprocessed source (.i)
+ASSEMBLY     = $(OBJDIR)/$(TARGET_NAME).s          # Assembly code (.s)
+SYMBOLS      = $(OBJDIR)/$(TARGET_NAME).sym        # Symbol table from objdump
+SECTIONS     = $(OBJDIR)/$(TARGET_NAME).sections   # ELF section headers
+DDR_INFO     = $(OBJDIR)/ddr_load.info              # Loadable segments info from readelf
+DISASM       = $(OBJDIR)/$(TARGET_NAME).disasm     # Disassembled binary code
+SORTED_SYMS  = $(OBJDIR)/$(TARGET_NAME)_sorted_symbols.txt  # Sorted nm symbols
+SIZE_INFO    = $(OBJDIR)/$(TARGET_NAME).size       # Size summary of binary
+STRINGS_OUT  = $(OBJDIR)/$(TARGET_NAME).strings    # Printable strings from binary
+
+# ================= Build Targets =================
+
+# Default target: create obj dir, build target, then generate extras (debug files)
+all: $(OBJDIR) $(TARGET) extras
+
+# Create the obj directory if it doesn't exist
+$(OBJDIR):
+	mkdir -p $(OBJDIR)
+
+# Compile the source .c file into an object file in obj/
+$(OBJ): $(SRC)
+	$(CC) $(CFLAGS) -c $< -o $@
+# Explanation:
+# $< is the first prerequisite (the source file)
+# $@ is the target (object file path)
+
+# Link the object file into the final executable binary
+$(TARGET): $(OBJ)
+	$(CC) -o $@ $^ $(LDFLAGS)
+# Explanation:
+# $^ is all prerequisites (the object files)
+# $@ is the target (final executable)
+
+# Generate all intermediate and debug files for analysis
+extras: $(TARGET)
+	$(CC) -E $(SRC) $(CFLAGS) > $(PREPROCESSED)
+	# Preprocessing output: expands macros, includes headers (.i file)
+	$(CC) -S $(SRC) $(CFLAGS) -o $(ASSEMBLY)
+	# Assembly output: human-readable assembler code (.s file)
+	$(OBJDUMP) -t $(TARGET) > $(SYMBOLS)
+	# Symbol table dump: list of symbols and addresses
+	$(READELF) -S $(TARGET) > $(SECTIONS)
+	# ELF sections info: describes segments in the binary
+	$(READELF) -l $(TARGET) | grep -A 10 "LOAD" > $(DDR_INFO)
+	# Program headers for loadable segments, useful for memory layout
+	$(OBJDUMP) -d $(TARGET) > $(DISASM)
+	# Disassembly of binary machine code (instruction-by-instruction)
+	$(NM) -n $(TARGET) > $(SORTED_SYMS)
+	# Sorted symbol list by address (nm)
+	$(SIZE) $(TARGET) > $(SIZE_INFO)
+	# Shows sizes of text, data, bss sections and total size
+	$(STRINGS) $(TARGET) > $(STRINGS_OUT)
+	# Extracts printable strings inside the binary
+
+# Remove all generated files and obj directory (clean build)
+clean:
+	rm -rf $(OBJDIR)
+
+# Declare phony targets (not files)
+.PHONY: all clean extras
+
+
+
+
+
+
+
+x86 our pc code and compile
+===================================================================
+
+1)hello_world.c
+
+
+
+#include <stdio.h>
+
+int main(void)
+{
+    printf("Hello, world!\n");
+    return 0;
+}
+
+
+
+2)Makefile
+===============
+
+# ================= User Configurable =================
+
+TARGET_NAME = hello_world
+
+TARGET = $(OBJDIR)/$(TARGET_NAME)
+
+SRC = hello_world.c
+
+CC       = gcc
+
+OBJDUMP  = objdump
+READELF  = readelf
+NM       = nm
+SIZE     = size
+STRINGS  = strings
+
+OBJDIR = obj
+
+OBJ = $(OBJDIR)/$(SRC:.c=.o)
+
+CFLAGS = -Wall -O2
+
+LDFLAGS = -Wl,-Map,$(OBJDIR)/$(TARGET_NAME).map
+
+PREPROCESSED = $(OBJDIR)/$(TARGET_NAME).i
+ASSEMBLY     = $(OBJDIR)/$(TARGET_NAME).s
+SYMBOLS      = $(OBJDIR)/$(TARGET_NAME).sym
+SECTIONS     = $(OBJDIR)/$(TARGET_NAME).sections
+DDR_INFO     = $(OBJDIR)/ddr_load.info
+DISASM       = $(OBJDIR)/$(TARGET_NAME).disasm
+SORTED_SYMS  = $(OBJDIR)/$(TARGET_NAME)_sorted_symbols.txt
+SIZE_INFO    = $(OBJDIR)/$(TARGET_NAME).size
+STRINGS_OUT  = $(OBJDIR)/$(TARGET_NAME).strings
+
+all: $(OBJDIR) $(TARGET) extras
+
+$(OBJDIR):
+	mkdir -p $(OBJDIR)
+
+$(OBJ): $(SRC)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(TARGET): $(OBJ)
+	$(CC) -o $@ $^ $(LDFLAGS)
+
+extras: $(TARGET)
+	$(CC) -E $(SRC) $(CFLAGS) > $(PREPROCESSED)
+	$(CC) -S $(SRC) $(CFLAGS) -o $(ASSEMBLY)
+	$(OBJDUMP) -t $(TARGET) > $(SYMBOLS)
+	$(READELF) -S $(TARGET) > $(SECTIONS)
+	$(READELF) -l $(TARGET) | grep -A 10 "LOAD" > $(DDR_INFO)
+	$(OBJDUMP) -d $(TARGET) > $(DISASM)
+	$(NM) -n $(TARGET) > $(SORTED_SYMS)
+	$(SIZE) $(TARGET) > $(SIZE_INFO)
+	$(STRINGS) $(TARGET) > $(STRINGS_OUT)
+
+clean:
+	rm -rf $(OBJDIR)
+
+.PHONY: all clean extras
+
+
+
+
+
+
+---------------
+use case
+
+What are all these generated files used for?
+Filename	Description / Use Case
+am437x_modbus_can.o	Compiled object file from your C source code (.c -> .o). Intermediate step before linking.
+am437x_TCP_ETU_COMMUNICATE	Final executable ARM binary file that runs on your target device.
+am437x_TCP_ETU_COMMUNICATE.i	Preprocessed source file. Shows C code after macro expansion and includes are processed. Useful for debugging macros.
+am437x_TCP_ETU_COMMUNICATE.s	Assembly code generated from your C source. Helpful for low-level debugging or optimization.
+am437x_TCP_ETU_COMMUNICATE.sym	Symbol table from objdump showing all symbols (functions, variables) with addresses and sizes.
+am437x_TCP_ETU_COMMUNICATE.sections	ELF section header info (text, data, bss sections, etc.) from readelf. Useful for inspecting memory layout.
+ddr_load.info	Program headers showing loadable segments and their memory addresses. Helps with memory mapping and debugging.
+am437x_TCP_ETU_COMMUNICATE.disasm	Full disassembly of the executable. Shows machine instructions and addresses for detailed code analysis.
+am437x_TCP_ETU_COMMUNICATE_sorted_symbols.txt	List of symbols sorted by address. Useful for symbol lookup and debugging.
+am437x_TCP_ETU_COMMUNICATE.map	Linker map file generated during linking. Contains addresses, sizes, and layout of all linked symbols and sections.
+am437x_TCP_ETU_COMMUNICATE.size	Summary of sizes of different sections (text, data, bss) and total binary size.
+am437x_TCP_ETU_COMMUNICATE.strings	Extracted printable strings from the binary. Useful for quick inspection of embedded strings or debug messages.
+
+
+
+
+
+
+
+
+
 ============================================================================================================================================================================================
 ============================================================================================================================================================================================
 
@@ -18714,12 +19044,10 @@ insmod c_can_platform.ko
 sleep 0.5
 
 
+ip -details link show can0
+ip -s -d link show can0
 
-ip link set can0 type can bitrate 50000
 
-ip link set can0 up
-
-cansend can0 123#DEADBEEF
 
 
 ip link set can0 down
@@ -18727,6 +19055,116 @@ ip link set can0 type can bitrate 125000
 ip link set can0 up
 candump can0 &
 cansend can0 123#DEADBEEF
+
+
+
+ip link set can0 down
+ip link set can0 type can bitrate 250000
+ip link set can0 up
+candump can0 &
+cansend can0 123#DEADBEEF
+
+
+ 
+ip link set can0 down
+ip link set can0 type can bitrate 500000
+ip link set can0 up
+candump can0 &
+cansend can0 123#DEADBEEF
+
+
+
+
+
+ip link set can0 down
+ip link set can0 type can bitrate 1000000
+ip link set can0 up
+candump can0 &
+cansend can0 123#DEADBEEF
+
+
+
+
+can loopback test
+=================
+
+# Bring interface down (if already up)
+ip link set can0 down
+
+# Set CAN bitrate and enable loopback
+ip link set can0 type can bitrate 125000 loopback on
+
+# Bring interface up
+ip link set can0 up
+
+# Start receiving in the background
+candump can0 &
+
+# Send a CAN frame (you should see this echoed back)
+cansend can0 123#DEADBEEF
+
+
+disable loopback
+
+ip link set can0 down
+ip link set can0 type can bitrate 125000 loopback off
+ip link set can0 up
+
+
+
+
+2. Enable CAN loopback mode in Linux:
+This allows the CAN controller to read back the message from RX pin:
+
+
+ip link set can0 down
+ip link set can0 type can bitrate 125000 loopback off listen-only off
+ip link set can0 up
+candump can0 &
+cansend can0 123#DEADBEEF
+
+⚠️ This requires that:
+
+TX from CPU goes to TX of transceiver
+
+RX of transceiver goes to RX of CPU
+
+Transceiver internally routes TX input to RX output
+
+Bus (CANH/CANL) is not driven (silent mode)
+
+
+
+
+Option 2: Full Loop with External Wiring
+Use this if you want to test CPU + transceiver (TCAN1044A) without any external CAN node:
+
+Connect CANH and CANL to each other via 120Ω termination on each end.
+
+Transceiver receives its own transmission reflected from the bus.
+
+
+ip link set can0 down
+ip link set can0 type can bitrate 125000 loopback off listen-only off
+ip link set can0 up
+candump can0 &
+cansend can0 123#DEADBEEF
+
+
+
+
+
+6. Test with Listen-Only Mode (sniff without transmitting)
+
+ip link set can0 down
+ip link set can0 type can bitrate 125000 listen-only on
+ip link set can0 up
+candump can0
+
+
+
+
+
 
 =============================================================================================================================================================================================
 
@@ -18825,6 +19263,9 @@ confermation you check the .config file in current build folder
 CONFIG_AUTOBOOT=y
 CONFIG_BOOTDELAY=2
 
+CONFIG_BOOTDELAY=0
+
+
 
 
 its off the logs in kernel boot
@@ -18834,6 +19275,24 @@ before build include/configs/am43xx_evm.h we need do edit this file
 
 => printenv nandargs 
 nandargs=setenv bootargs console=${console} ${optargs} root=${nandroot} rootfstype=${nandrootfstype} quiet loglevel=3 
+
+loglevel=3 allows messages of error level and above (levels 0–3) to be printed:
+
+0: Emergency
+
+1: Alert
+
+2: Critical
+
+3: Error
+
+
+To see all normal logs during Linux boot, remove quiet and set loglevel=7.
+
+✅ Set full verbose boot logs:
+
+loglevel=7\0
+
 
 
 
@@ -19012,7 +19471,6 @@ ARAGO_TINY_IMAGE_EXTRA_INSTALL ?= ""
 
 IMAGE_INSTALL = " \
     packagegroup-arago-sysvinit-boot \
-    dhcp-client \
     sntp  \
     iproute2 \
     can-utils \
@@ -19129,6 +19587,471 @@ ln -sf /etc/Kolkata /etc/localtime
 
 
 
+board booting plus sw-update ubi steps 
+========================================
+
+////////////////
+
+
+build u-boot
+========
+
+wget https://developer.arm.com/-/media/Files/downloads/gnu-a/8.3-2019.03/binrel/gcc-arm-8.3-2019.03-x86_64-arm-linux-gnueabihf.tar.xz
+tar -Jxvf gcc-arm-8.3-2019.03-x86_64-arm-linux-gnueabihf.tar.xz -C $HOME
+
+sudo apt-get update
+sudo apt-get install bison flex build-essential libssl-dev
+
+
+export ARCH=arm
+export CROSS_COMPILE=/home/zumi/gcc-arm-8.3-2019.03-x86_64-arm-linux-gnueabihf/bin/arm-linux-gnueabihf-
+export PATH=/home/zumi/gcc-arm-8.3-2019.03-x86_64-arm-linux-gnueabihf/bin:$PATH
+
+make distclean
+
+make am43xx_evm_defconfig
+
+make -j8
+
+
+sudo apt install libncursesw5-dev pkg-config
+sudo apt install libssl-dev
+sudo apt install build-essential
+sudo apt install bison
+sudo apt install flex
+
+
+fit image library:
+
+sudo apt install u-boot-tools
+---------------------------------
+wget http://ports.ubuntu.com/pool/main/o/openssl1.1/libssl1.1_1.1.1-1ubuntu2.1~18.04.20_armhf.deb
+wget http://ports.ubuntu.com/pool/main/o/openssl1.1/libssl-dev_1.1.1-1ubuntu2.1~18.04.20_armhf.deb
+
+
+
+Board booting time reducing
+===========================
+
+
+u-boot autoboot delay we need de increase are reduses we need do inlcude the 
+
+configs/am43xx_evm_defconfig   include CONFIG_BOOTDELAY=100 you get output 100 sec delay 
+
+confermation you check the .config file in current build folder 
+
+#
+# Autoboot options
+#
+CONFIG_AUTOBOOT=y
+CONFIG_BOOTDELAY=2
+
+its off the logs in kernel boot
+===============================
+
+before build include/configs/am43xx_evm.h we need do edit this file 
+
+=> printenv nandargs 
+nandargs=setenv bootargs console=${console} ${optargs} root=${nandroot} rootfstype=${nandrootfstype} quiet loglevel=3 
+
+
+
+we will enalbe for temperary  use
+ 
+sysctl -w kernel.printk="8 4 1 7"
+
+echo "kernel.printk=8 4 1 7" >> /etc/sysctl.conf
+sysctl -p
+
+
+kernal configuration:
+-----------------------------
+
+obj-$(CONFIG_CAN)       += can.o
+can-y                   := af_can.o
+can-$(CONFIG_PROC_FS)   += proc.o
+
+obj-$(CONFIG_CAN_RAW)   += can-raw.o
+can-raw-y               := raw.o
+
+obj-$(CONFIG_CAN_BCM)   += can-bcm.o
+can-bcm-y               := bcm.o
+
+obj-$(CONFIG_CAN_GW)    += can-gw.o
+can-gw-y                := gw.o
+
+obj-$(CONFIG_CAN_J1939) += j1939/
+
+obj-$(CONFIG_CAN_ISOTP) += can-isotp.o
+can-isotp-y             := isotp.o
+
+
+
+
+
+
+can.ko can-raw.ko can-gw.ko can-bcm.ko can-dev.ko c_can.ko c_can_platform.ko
+  hsr.ko pruss.ko pru_rproc.ko icss_iep.ko irq-pruss-intc.ko llc.ko stp.ko bridge.ko
+  prueth.ko at25.ko
+
+
+
+./drivers/net/can/dev/can-dev.ko             // CONFIG_CAN_DEV
+./net/can/can-raw.ko                         //CONFIG_CAN_RAW
+./net/can/can.ko                             //CONFIG_CAN
+./net/can/can-bcm.ko                         //CONFIG_CAN_BCM
+./net/can/can-gw.ko                          //CONFIG_CAN_GW	
+
+
+
+./drivers/net/can/c_can/c_can.ko             == CONFIG_CAN_C_CAN
+./drivers/net/can/c_can/c_can_platform.ko    == CONFIG_CAN_C_CAN_PLATFORM 
+
+
+ethernet
+ 	
+net/hsr/hsr.ko                                       // CONFIG_HSR
+
+drivers/soc/ti/pruss.ko                              // CONFIG_TI_PRUSS
+
+./drivers/remoteproc/pru_rproc.ko                    // CONFIG_PRU_REMOTEPROC
+
+./drivers/net/ethernet/ti/icss_iep.ko                // CONFIG_TI_ICSS_IEP
+
+./drivers/irqchip/irq-pruss-intc.ko	             // CONFIG_TI_PRUSS_INTC
+
+./net/llc/llc.ko                                     // CONFIG_LLC
+
+./net/802/stp.ko                                     // CONFIG_STP
+
+./net/bridge/bridge.ko                               // CONFIG_BRIDGE
+
+./drivers/net/ethernet/ti/prueth.ko                  // CONFIG_TI_PRUETH
+
+./drivers/misc/eeprom/at25.ko                        // CONFIG_EEPROM_AT25
+
+
+
+
+=======================================================================================================================================
+
+
+device nand0 <nand.0>, # parts = 12
+ #: name                size            offset          mask_flags
+ 0: NAND.SPL            0x00040000      0x00000000      0
+ 1: NAND.SPL.backup1    0x00040000      0x00040000      0
+ 2: NAND.SPL.backup2    0x00040000      0x00080000      0
+ 3: NAND.SPL.backup3    0x00040000      0x000c0000      0
+ 4: NAND.u-boot-1       0x00200000      0x00100000      0
+ 5: NAND.kernel-1       0x00700000      0x00300000      0
+ 6: NAND.file-system-1  0x15600000      0x00a00000      0
+ 7: NAND.u-boot-2       0x00200000      0x16000000      0
+ 8: NAND.kernel-2       0x00700000      0x16200000      0
+ 9: NAND.file-system-2  0x03200000      0x16900000      0
+10: NAND.sw-env         0x00100000      0x19b00000      0
+11: NAND.Application    0x06400000      0x19c00000      0
+
+
+
+
+nand erase.chip
+nand erase.part NAND.SPL
+nand erase.part NAND.SPL.backup1
+nand erase.part NAND.SPL.backup2
+nand erase.part NAND.SPL.backup3
+nand erase.part NAND.u-boot-1
+nand erase.part NAND.u-boot-2
+nand erase.part NAND.kernel-1
+nand erase.part NAND.kernel-2
+nand erase.part NAND.file-system-1
+nand erase.part NAND.file-system-2
+
+
+
+fatload mmc 0:1 0x82000000 MLO
+nand write 0x82000000 NAND.SPL 0x26653
+nand write 0x82000000 NAND.SPL.backup1 0x26653
+nand write 0x82000000 NAND.SPL.backup2 0x26653
+nand write 0x82000000 NAND.SPL.backup3 0x26653
+
+fatload mmc 0:1 0x82000000 u-boot.img
+nand write 0x82000000 NAND.u-boot-1  0xc6e54
+nand write 0x82000000 NAND.u-boot-2  0xc6e54
+
+fatload mmc 0:1 0x82000000 fitImage.itb
+nand write 0x82000000 NAND.kernel-1 0x4e8dbe
+nand write 0x82000000 NAND.kernel-2 0x4e8dbe
+
+fatload mmc 0:1 0x82000000 rootfs.ubi
+nand write 0x82000000 NAND.file-system-1 0x16c0000
+nand write 0x82000000 NAND.file-system-2 0x16c0000
+=======================================================================================================================================
+
+nand read 0x80800000 NAND.kernel 0x487882
+
+
+
+nand erase.part NAND.kernel
+fatload mmc 0:1 0x82000000 fitImage.itb
+nand write 0x82000000 NAND.kernel 0x4cdd2e
+
+
+
+lnt_fs.ubi
+
+nand erase.part NAND.file-system
+fatload mmc 0:1 0x82000000 rootfs.ubi
+nand write 0x82000000 NAND.file-system 0x1980000
+=======================================================================================================================================
+create rootfs
+-------------
+zumi@zumi-workspace:~/karthi/tiny_tar$ cat ubinize.cfg
+[ubifs]
+mode=ubi
+image=rootfs.ubifs
+vol_id=0
+vol_size=28MiB
+vol_type=dynamic
+vol_name=rootfs
+vol_alignment=1
+vol_flags=autoresize
+zumi@zumi-workspace:~/karthi/tiny_tar$ 
+
+
+
+sudo mkfs.ubifs -r /home/zumi/Karthi/Base_image -o rootfs.ubifs -F -m 2048 -e 126976 -c 3989
+
+
+sudo ubinize -o rootfs.ubi -m 2048 -p 128KiB -s 512 -O 2048 ubinize.cfg
+
+=======================================================================================================================================
+auto login
+--------------
+
+vi /etc/inittab
+
+l0:0:wait:/etc/init.d/rc 0
+l1:1:wait:/etc/init.d/rc 1
+l2:2:wait:/etc/init.d/rc 2
+l3:3:wait:/etc/init.d/rc 3
+l4:4:wait:/etc/init.d/rc 4
+#l5:5:wait:/etc/init.d/rc 5                                         //command this line
+l6:6:wait:/etc/init.d/rc 6
+# Normally not reached, but fallthrough in case of emergency.
+z6:6:respawn:/sbin/sulogin
+
+S:2345:respawn:/sbin/getty 115200 ttyS0 -n -l /bin/autologin         // add this line 
+#S0:12345:respawn:/bin/start_getty 115200 ttyS0 vt102                //command this line
+
+create this file 
+-----------------
+vi /bin/autologin
+ 
+#!/bin/sh
+exec /bin/login -f root
+     
+should be change mode 
+------------------------
+chmod +x /bin/autologin
+=======================================================================================================================================
+
+
+vi .profile
+============
+#!/bin/sh
+
+echo "[DEBUG] Setting executable permission for /etc/network/network.sh"
+chmod 777 /etc/network/network.sh
+
+echo "[DEBUG] Launching /etc/network/network.sh"
+/etc/network/network.sh &
+
+sleep 1
+
+echo "[DEBUG] Setting executable permission for /home/root/sw_update/sw_update.sh"
+chmod 777 /home/root/sw_update/sw_update.sh
+
+echo "[DEBUG] Launching /home/root/sw_update/sw_update.sh"
+/home/root/sw_update/sw_update.sh &
+
+=======================================================================================================================================
+
+vi etc/network/network.sh
+
+
+#!/bin/sh
+
+# PHY detection section
+PHY0_DETECTED=$(dmesg | grep -q 'davinci_mdio.*phy\[0\]:.*TI DP83822' && echo 1 || echo 0)
+PHY1_DETECTED=$(dmesg | grep -q 'davinci_mdio.*phy\[1\]:.*TI DP83822' && echo 1 || echo 0)
+
+if [ "$PHY0_DETECTED" -eq 1 ] && [ "$PHY1_DETECTED" -eq 0 ]; then
+    echo "Only PHY0 detected, rebooting..."
+    reboot
+elif [ "$PHY0_DETECTED" -eq 0 ] && [ "$PHY1_DETECTED" -eq 1 ]; then
+    echo "Only PHY1 detected, rebooting..."
+    reboot
+fi
+
+# SSH setup
+mkdir -p /etc/ssh
+
+# Generate RSA host key if missing
+[ ! -f /etc/ssh/ssh_host_rsa_key ] && ssh-keygen -t rsa -f /etc/ssh/ssh_host_rsa_key -N ''
+
+# Generate ECDSA host key if missing
+[ ! -f /etc/ssh/ssh_host_ecdsa_key ] && ssh-keygen -t ecdsa -f /etc/ssh/ssh_host_ecdsa_key -N ''
+
+# Generate ED25519 host key if missing
+[ ! -f /etc/ssh/ssh_host_ed25519_key ] && ssh-keygen -t ed25519 -f /etc/ssh/ssh_host_ed25519_key -N ''
+
+# Start SSH daemon
+/usr/sbin/sshd
+
+
+# Debug control: Set to 1 to enable debug prints, 0 to disable
+DEBUG=0
+
+STATUS_FILE="/tmp/iface_status"
+INTERFACES="eth0 eth1"
+SLEEP_INTERVAL=2
+
+# Ensure status file exists
+touch "$STATUS_FILE"
+
+log_msg() {
+    [ "$DEBUG" -eq 1 ] && echo "$(date '+%Y-%m-%d %H:%M:%S') - $1"
+}
+
+initialize_interfaces() {
+    for iface in $INTERFACES; do
+        if ! ip link show "$iface" > /dev/null 2>&1; then
+            log_msg "Interface $iface not found during initialization"
+            continue
+        fi
+
+        STATE=$(cat "/sys/class/net/$iface/operstate")
+        if [ "$STATE" != "up" ]; then
+            ip link set "$iface" up
+            log_msg "Brought up interface $iface"
+        fi
+
+        echo "$iface=down" >> "$STATUS_FILE"
+    done
+}
+
+check_and_configure_interface() {
+    ETH_IF=$1
+    LINK_PATH="/sys/class/net/$ETH_IF/carrier"
+
+    if [ ! -e "$LINK_PATH" ]; then
+        log_msg "Interface $ETH_IF not found"
+        return
+    fi
+
+    LINK_STATUS=$(cat "$LINK_PATH")
+
+    if [ "$LINK_STATUS" -eq 1 ]; then
+        if ! ip addr show "$ETH_IF" | grep -q "inet "; then
+            log_msg "$ETH_IF is up, acquiring IP via udhcpc"
+            pkill -f "udhcpc.*$ETH_IF" 2>/dev/null
+            udhcpc -i "$ETH_IF" >/dev/null 2>&1 &
+        fi
+    else
+        log_msg "$ETH_IF is down, flushing IP addresses"
+        ip addr flush dev "$ETH_IF"
+        pkill -f "udhcpc.*$ETH_IF" 2>/dev/null
+    fi
+}
+
+trap 'log_msg "Script interrupted"; exit 0' INT TERM
+
+log_msg "Starting eth_monitor script"
+initialize_interfaces
+
+while true; do
+    for IFACE in $INTERFACES; do
+        check_and_configure_interface "$IFACE"
+    done
+    sleep "$SLEEP_INTERVAL"
+done
+
+
+=======================================================================================================================================
+cat sw_update.sh
+------------------
+#!/bin/sh
+
+# Log file location
+LOGFILE="/home/root/sw_update/app_run_log.txt"
+
+chmod 777 /home/root/sw_update/Main_OS_app
+chmod 777 /home/root/sw_update/firmware-update
+
+# Read the kernel cmdline
+CMDLINE=$(cat /proc/cmdline)
+
+# Add timestamp
+echo "====== Boot Check: $(date) ======" >> "$LOGFILE"
+echo "Kernel Cmdline: $CMDLINE" >> "$LOGFILE"
+
+# Check for active partition and run appropriate application, logging its output
+if echo "$CMDLINE" | grep -q "NAND.file-system-1"; then
+    echo "Detected NAND.file-system-1. Launching Main_OS_app..." >> "$LOGFILE"
+    /home/root/sw_update/Main_OS_app >> "$LOGFILE" 2>&1 &
+
+elif echo "$CMDLINE" | grep -q "NAND.file-system-2"; then
+    echo "Detected NAND.file-system-2. Launching firmware-update..." >> "$LOGFILE"
+    /home/root/sw_update/firmware-update >> "$LOGFILE" 2>&1 &
+
+else
+    echo "ERROR: Unknown rootfs partition." >> "$LOGFILE"
+fi
+
+
+=======================================================================================================================================
+
+Then update working firmware 
+==============================
+982b06f019f57d2a46a84546eb4a8994226f44bfbddaee58814597bdc5dd751b  am437x-pru0-prueth-fw.elf
+7d3b9d45aa8939995e6e4f7ae4710b6b269787bfe621407f08696b99cf121687  am437x-pru1-prueth-fw.elf
+
+=======================================================================================================================================
+
+Board booting time reducing
+===========================
+
+
+u-boot autoboot delay we need de increase are reduses we need do inlcude the 
+
+configs/am43xx_evm_defconfig   include CONFIG_BOOTDELAY=100 you get output 100 sec delay 
+
+confermation you check the .config file in current build folder 
+
+#
+# Autoboot options
+#
+CONFIG_AUTOBOOT=y
+CONFIG_BOOTDELAY=2
+
+
+
+its off the logs in kernel boot
+===============================
+
+before build include/configs/am43xx_evm.h we need do edit this file 
+
+=> printenv nandargs 
+nandargs=setenv bootargs console=${console} ${optargs} root=${nandroot} rootfstype=${nandrootfstype} quiet loglevel=3 
+
+
+
+we will enalbe for temperary  use
+ 
+sysctl -w kernel.printk="8 4 1 7"
+
+echo "kernel.printk=8 4 1 7" >> /etc/sysctl.conf
+sysctl -p
 
 
 
@@ -19139,8 +20062,7 @@ ln -sf /etc/Kolkata /etc/localtime
 
 
 
-
-
+///////////////
 
 
 
@@ -19728,619 +20650,87 @@ echo "✅ '$SRC' successfully pushed!"
 git log --oneline -5
 
 
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+balenaEtcher install link 
+==========================
 
 
-========F========================================================================================
+https://github.com/balena-io/etcher/releases/tag/v1.18.11
 
 
-dpws protocol
+chmod +x balenaEtcher-1.18.11-x64.AppImage
+
+./balenaEtcher-1.18.11-x64.AppImage
+
+
+
+http send and recive manul terminal cmt
+=======================================
+
+HTTP Send and Receive Manual Terminal Commands
+1) Source (Sender - acts as HTTP server)
+
+
+cd ~/Downloads/myfiles     # Navigate to the folder containing the files to share
+ls                         # List available files (optional)
+python3 -m http.server 8000
+
+
+This starts a basic HTTP server on port 8000.
+
+Accessible via: http://<source-ip>:8000/
+
+2) Destination (Receiver - downloads using wget)
+
+
+wget http://192.168.0.153:8000/myfile.txt
+
+Replace 192.168.0.153 with the actual IP of the source PC.
+
+Replace myfile.txt with the actual filename.
+
+
+
+upload to net 
+==============
+
+run on terminal
 ===============
-
-
-1) DPWS Setup
-Commands to Install gSOAP:
-
-cd ~/Downloads
-rm gsoap.tar.gz  # Remove the previous corrupted file
-wget https://sourceforge.net/projects/gsoap2/files/latest/download -O gsoap.tar.gz
-
-sudo apt install p7zip-full
-7z x gsoap.tar.gz
-./configure 
-make -j$(nproc)
-sudo make install
-
-
-1)	
-
-hello.wsdl
-
-<definitions name="DeviceService"
-    targetNamespace="http://example.org/device"
-    xmlns:tns="http://example.org/device"
-    xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/"
-    xmlns:xsd="http://www.w3.org/2001/XMLSchema"
-    xmlns="http://schemas.xmlsoap.org/wsdl/">
-
-  <!-- Messages for all operations -->
-  <message name="sayHelloRequest" />
-  <message name="sayHelloResponse">
-    <part name="greeting" type="xsd:string"/>
-  </message>
-  
-  <message name="getBoardNameRequest" />
-  <message name="getBoardNameResponse">
-    <part name="name" type="xsd:string"/>
-  </message>
-  
-  <message name="getEepromDataRequest">
-    <part name="address" type="xsd:int"/>
-    <part name="length" type="xsd:int"/>
-  </message>
-  <message name="getEepromDataResponse">
-    <part name="data" type="xsd:string"/>
-  </message>
-  
-  <message name="setLedRequest">
-    <part name="led" type="xsd:int"/>
-    <part name="state" type="xsd:boolean"/>
-  </message>
-  <message name="setLedResponse">
-    <part name="success" type="xsd:boolean"/>
-  </message>
-
-  <!-- Port Type with all operations -->
-  <portType name="DevicePortType">
-    <operation name="sayHello">
-      <input message="tns:sayHelloRequest"/>
-      <output message="tns:sayHelloResponse"/>
-    </operation>
-    <operation name="getBoardName">
-      <input message="tns:getBoardNameRequest"/>
-      <output message="tns:getBoardNameResponse"/>
-    </operation>
-    <operation name="getEepromData">
-      <input message="tns:getEepromDataRequest"/>
-      <output message="tns:getEepromDataResponse"/>
-    </operation>
-    <operation name="setLed">
-      <input message="tns:setLedRequest"/>
-      <output message="tns:setLedResponse"/>
-    </operation>
-  </portType>
-
-  <!-- Binding -->
-  <binding name="DeviceBinding" type="tns:DevicePortType">
-    <soap:binding style="rpc" transport="http://schemas.xmlsoap.org/soap/http"/>
-    
-    <operation name="sayHello">
-      <soap:operation soapAction="sayHello"/>
-      <input><soap:body use="encoded" namespace="urn:DeviceService" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"/></input>
-      <output><soap:body use="encoded" namespace="urn:DeviceService" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"/></output>
-    </operation>
-    
-    <operation name="getBoardName">
-      <soap:operation soapAction="getBoardName"/>
-      <input><soap:body use="encoded" namespace="urn:DeviceService" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"/></input>
-      <output><soap:body use="encoded" namespace="urn:DeviceService" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"/></output>
-    </operation>
-    
-    <operation name="getEepromData">
-      <soap:operation soapAction="getEepromData"/>
-      <input><soap:body use="encoded" namespace="urn:DeviceService" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"/></input>
-      <output><soap:body use="encoded" namespace="urn:DeviceService" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"/></output>
-    </operation>
-    
-    <operation name="setLed">
-      <soap:operation soapAction="setLed"/>
-      <input><soap:body use="encoded" namespace="urn:DeviceService" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"/></input>
-      <output><soap:body use="encoded" namespace="urn:DeviceService" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"/></output>
-    </operation>
-  </binding>
-
-  <service name="DeviceService">
-    <port name="DevicePort" binding="tns:DeviceBinding">
-      <soap:address location="http://192.168.0.153:8080/DeviceService"/>
-    </port>
-  </service>
-</definitions>
-
-
-
-
-
-2)
-
-deviceService.cpp
-
-#include "soapDeviceBindingService.h"
-#include "DeviceBinding.nsmap"
-#include <string>
-#include <vector>
-
-// Mock EEPROM data
-std::vector<uint8_t> eepromData = {
-    'A', 'M', '4', '3', '7', '6', // Board name
-    0x12, 0x34, 0x56, 0x78,        // Some data
-    0xAA, 0xBB, 0xCC, 0xDD
-};
-
-int DeviceBindingService::sayHello(std::string &greeting) {
-    greeting = "Device Service Ready!";
-    return SOAP_OK;
-}
-
-int DeviceBindingService::getBoardName(std::string &name) {
-    name = "AM4376 Development Board";
-    return SOAP_OK;
-}
-
-int DeviceBindingService::getEepromData(int address, int length, std::string &data) {
-    data.clear();
-    if(address < 0 || address >= eepromData.size()) {
-        return SOAP_FAULT;
-    }
-    
-    int end = address + length;
-    if(end > eepromData.size()) end = eepromData.size();
-    
-    for(int i = address; i < end; i++) {
-        char buf[4];
-        snprintf(buf, sizeof(buf), "%02X ", eepromData[i]);
-        data += buf;
-    }
-    
-    return SOAP_OK;
-}
-
-int DeviceBindingService::setLed(int led, bool state, bool &success) {
-    // In a real implementation, this would control hardware
-    success = (led >= 0 && led < 4); // We have 4 LEDs (0-3)
-    if(success) {
-        // Log LED state change
-        std::cout << "LED " << led << " set to " << (state ? "ON" : "OFF") << std::endl;
-    }
-    return SOAP_OK;
-}
-
-int main() {
-    DeviceBindingService service(SOAP_XML_INDENT);
-    if (service.run(8080) != SOAP_OK) {
-        service.soap_stream_fault(std::cerr);
-    }
-    return 0;
-}
-
-
-
-
-
-
-
-wsdl2h -o device.h hello.wsdl
-
-
-soapcpp2 -2 -i device.h
-
-
-g++ -o deviceService deviceService.cpp  soapC.cpp soapDeviceBindingService.cpp  -lgsoap++ -lgsoap -pthread
-
-
+curl -F 'file=@your_file' https://0x0.st
 
 output
-=================
 
-1.html
-
-save right click opne website like fire box are chrome
+https://0x0.st/8tH0.txt
 
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Device Control Panel</title>
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      --primary: #3498db;
-      --success: #2ecc71;
-      --danger: #e74c3c;
-      --dark: #2c3e50;
-      --light: #ecf0f1;
-    }
-    
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-    
-    body {
-      font-family: 'Roboto', sans-serif;
-      background: #f5f7fa;
-      color: var(--dark);
-      line-height: 1.6;
-    }
-    
-    .container {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 2rem;
-    }
-    
-    header {
-      text-align: center;
-      margin-bottom: 2rem;
-      padding-bottom: 1rem;
-      border-bottom: 1px solid #ddd;
-    }
-    
-    h1 {
-      font-weight: 500;
-      color: var(--dark);
-      margin-bottom: 0.5rem;
-    }
-    
-    .status-bar {
-      background: white;
-      border-radius: 8px;
-      padding: 1rem;
-      margin-bottom: 2rem;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    
-    .status-indicator {
-      display: flex;
-      align-items: center;
-    }
-    
-    .indicator {
-      width: 12px;
-      height: 12px;
-      border-radius: 50%;
-      margin-right: 8px;
-      background: var(--success);
-    }
-    
-    .panels {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 1.5rem;
-    }
-    
-    .panel {
-      background: white;
-      border-radius: 8px;
-      padding: 1.5rem;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    }
-    
-    .panel-title {
-      font-size: 1.2rem;
-      margin-bottom: 1rem;
-      padding-bottom: 0.5rem;
-      border-bottom: 1px solid #eee;
-      color: var(--dark);
-    }
-    
-    .btn {
-      display: inline-block;
-      background: var(--primary);
-      color: white;
-      border: none;
-      padding: 0.6rem 1.2rem;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 0.9rem;
-      transition: all 0.2s;
-      margin-right: 0.5rem;
-      margin-bottom: 0.5rem;
-    }
-    
-    .btn:hover {
-      opacity: 0.9;
-      transform: translateY(-1px);
-    }
-    
-    .btn-danger {
-      background: var(--danger);
-    }
-    
-    .btn-success {
-      background: var(--success);
-    }
-    
-    .led-control {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-      margin-bottom: 1rem;
-    }
-    
-    .led-btn {
-      flex: 1 0 40%;
-      min-width: 120px;
-    }
-    
-    .form-group {
-      margin-bottom: 1rem;
-    }
-    
-    label {
-      display: block;
-      margin-bottom: 0.3rem;
-      font-weight: 500;
-    }
-    
-    input {
-      width: 100%;
-      padding: 0.6rem;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-    }
-    
-    .result {
-      margin-top: 1rem;
-      padding: 1rem;
-      background: #f8f9fa;
-      border-radius: 4px;
-      border-left: 4px solid var(--primary);
-      font-family: monospace;
-      white-space: pre-wrap;
-      min-height: 50px;
-    }
-    
-    .tab-container {
-      margin-top: 1rem;
-    }
-    
-    .tabs {
-      display: flex;
-      border-bottom: 1px solid #ddd;
-      margin-bottom: 1rem;
-    }
-    
-    .tab {
-      padding: 0.5rem 1rem;
-      cursor: pointer;
-      border-bottom: 2px solid transparent;
-    }
-    
-    .tab.active {
-      border-bottom: 2px solid var(--primary);
-      color: var(--primary);
-      font-weight: 500;
-    }
-    
-    .tab-content {
-      display: none;
-    }
-    
-    .tab-content.active {
-      display: block;
-    }
-    
-    @media (max-width: 768px) {
-      .panels {
-        grid-template-columns: 1fr;
-      }
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <header>
-      <h1>AM4376 Board Control Panel</h1>
-      <p>Web-based interface for device management</p>
-    </header>
-    
-    <div class="status-bar">
-      <div class="status-indicator">
-        <div class="indicator"></div>
-        <span>Service Connected</span>
-      </div>
-      <button class="btn" onclick="sayHello()">Check Service</button>
-    </div>
-    
-    <div class="panels">
-      <div class="panel">
-        <h2 class="panel-title">Board Information</h2>
-        <button class="btn" onclick="getBoardName()">Get Board Name</button>
-        <div class="result" id="boardInfoResult"></div>
-      </div>
-      
-      <div class="panel">
-        <h2 class="panel-title">EEPROM Operations</h2>
-        <div class="form-group">
-          <label for="eepromAddress">Address (0-15):</label>
-          <input type="number" id="eepromAddress" min="0" max="15" value="0">
-        </div>
-        <div class="form-group">
-          <label for="eepromLength">Length (1-16):</label>
-          <input type="number" id="eepromLength" min="1" max="16" value="8">
-        </div>
-        <button class="btn" onclick="readEeprom()">Read EEPROM</button>
-        <div class="result" id="eepromResult"></div>
-      </div>
-      
-      <div class="panel">
-        <h2 class="panel-title">LED Control</h2>
-        <div class="led-control">
-          <button class="btn btn-success led-btn" onclick="setLed(0, true)">LED 0 ON</button>
-          <button class="btn btn-danger led-btn" onclick="setLed(0, false)">LED 0 OFF</button>
-          <button class="btn btn-success led-btn" onclick="setLed(1, true)">LED 1 ON</button>
-          <button class="btn btn-danger led-btn" onclick="setLed(1, false)">LED 1 OFF</button>
-          <button class="btn btn-success led-btn" onclick="setLed(2, true)">LED 2 ON</button>
-          <button class="btn btn-danger led-btn" onclick="setLed(2, false)">LED 2 OFF</button>
-          <button class="btn btn-success led-btn" onclick="setLed(3, true)">LED 3 ON</button>
-          <button class="btn btn-danger led-btn" onclick="setLed(3, false)">LED 3 OFF</button>
-        </div>
-        <div class="result" id="ledResult"></div>
-      </div>
-    </div>
-    
-    <div class="panel">
-      <h2 class="panel-title">Raw SOAP Messages</h2>
-      <div class="tab-container">
-        <div class="tabs">
-          <div class="tab active" onclick="switchTab('requestTab')">Request</div>
-          <div class="tab" onclick="switchTab('responseTab')">Response</div>
-        </div>
-        <div class="tab-content active" id="requestTab">
-          <div class="result" id="soapRequest"></div>
-        </div>
-        <div class="tab-content" id="responseTab">
-          <div class="result" id="soapResponse"></div>
-        </div>
-      </div>
-    </div>
-  </div>
+use anywhere
+=============
+wget https://0x0.st/8tH0.txt
 
-  <script>
-    // Tab switching
-    function switchTab(tabId) {
-      document.querySelectorAll('.tab-content').forEach(tab => {
-        tab.classList.remove('active');
-      });
-      document.querySelectorAll('.tab').forEach(tab => {
-        tab.classList.remove('active');
-      });
-      
-      document.getElementById(tabId).classList.add('active');
-      document.querySelector(`.tab[onclick="switchTab('${tabId}')"]`).classList.add('active');
-    }
-    
-    // SOAP call functions
-    function callSoapService(action, xmlData, resultElement, requestElement) {
-      if(requestElement) {
-        document.getElementById(requestElement).textContent = xmlData;
-      }
-      
-      fetch("http://192.168.0.153:8080/DeviceService", {
-        method: "POST",
-        headers: {
-          "Content-Type": "text/xml",
-          "SOAPAction": action
-        },
-        body: xmlData
-      })
-      .then(response => {
-        if(!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        return response.text();
-      })
-      .then(str => {
-        document.getElementById('soapResponse').textContent = str;
-        
-        // Try to parse the response
-        try {
-          const parser = new DOMParser();
-          const xmlDoc = parser.parseFromString(str, "text/xml");
-          
-          // Find the first text node in the response body
-          const responseNodes = xmlDoc.getElementsByTagNameNS("*", action + "Response");
-          if(responseNodes.length > 0) {
-            const responseText = responseNodes[0].textContent.trim();
-            if(resultElement) {
-              document.getElementById(resultElement).textContent = responseText || "Operation successful";
-            }
-          } else {
-            if(resultElement) {
-              document.getElementById(resultElement).textContent = "Response received (see raw tab)";
-            }
-          }
-        } catch(e) {
-          if(resultElement) {
-            document.getElementById(resultElement).textContent = "Error parsing response: " + e.message;
-          }
-        }
-      })
-      .catch(error => {
-        if(resultElement) {
-          document.getElementById(resultElement).textContent = "Error: " + error.message;
-        }
-        document.getElementById('soapResponse').textContent = "Error: " + error.message;
-      });
-    }
-    
-    // Service operations
-    function sayHello() {
-      const xmlData = `<?xml version="1.0" encoding="UTF-8"?>
-<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/"
-  xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/"
-  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xmlns:xsd="http://www.w3.org/2001/XMLSchema"
-  xmlns:ns1="urn:DeviceService">
-  <SOAP-ENV:Body>
-    <ns1:sayHello/>
-  </SOAP-ENV:Body>
-</SOAP-ENV:Envelope>`;
-      
-      callSoapService("sayHello", xmlData, "boardInfoResult", "soapRequest");
-    }
-    
-    function getBoardName() {
-      const xmlData = `<?xml version="1.0" encoding="UTF-8"?>
-<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/"
-  xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/"
-  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xmlns:xsd="http://www.w3.org/2001/XMLSchema"
-  xmlns:ns1="urn:DeviceService">
-  <SOAP-ENV:Body>
-    <ns1:getBoardName/>
-  </SOAP-ENV:Body>
-</SOAP-ENV:Envelope>`;
-      
-      callSoapService("getBoardName", xmlData, "boardInfoResult", "soapRequest");
-    }
-    
-    function readEeprom() {
-      const address = document.getElementById('eepromAddress').value;
-      const length = document.getElementById('eepromLength').value;
-      
-      const xmlData = `<?xml version="1.0" encoding="UTF-8"?>
-<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/"
-  xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/"
-  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xmlns:xsd="http://www.w3.org/2001/XMLSchema"
-  xmlns:ns1="urn:DeviceService">
-  <SOAP-ENV:Body>
-    <ns1:getEepromData>
-      <address>${address}</address>
-      <length>${length}</length>
-    </ns1:getEepromData>
-  </SOAP-ENV:Body>
-</SOAP-ENV:Envelope>`;
-      
-      callSoapService("getEepromData", xmlData, "eepromResult", "soapRequest");
-    }
-    
-    function setLed(led, state) {
-      const xmlData = `<?xml version="1.0" encoding="UTF-8"?>
-<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/"
-  xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/"
-  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xmlns:xsd="http://www.w3.org/2001/XMLSchema"
-  xmlns:ns1="urn:DeviceService">
-  <SOAP-ENV:Body>
-    <ns1:setLed>
-      <led>${led}</led>
-      <state>${state ? 'true' : 'false'}</state>
-    </ns1:setLed>
-  </SOAP-ENV:Body>
-</SOAP-ENV:Envelope>`;
-      
-      callSoapService("setLed", xmlData, "ledResult", "soapRequest");
-    }
-  </script>
-</body>
-</html>
+
+
+
+curl -F "file=@k2e_nand-linux" https://store1.gofile.io/uploadFile
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
