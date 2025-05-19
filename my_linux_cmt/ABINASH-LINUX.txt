@@ -6847,7 +6847,7 @@ reset
 
 ########################################
 ABINASH SETUP:
-########################################
+#######################################
 Enter into the U-boot terminal:
 
 setenv serverip 192.168.1.10
@@ -18549,7 +18549,6 @@ Expected output format:
  * A4 (440 Hz) for 2 seconds  
  */  
 
-One more thing: if printf is in a normal location, use LOG_INFO; if it's in an error location, use LOG_ERROR
  
  modify below fun
 
@@ -19583,6 +19582,7 @@ scp /usr/share/zoneinfo/Asia/Kolkata root@192.168.0.250:/etc/Kolkata
 ln -sf /etc/Kolkata /etc/localtime
 
 
+sntp -S pool.ntp.org && date
 
 
 
@@ -20056,7 +20056,36 @@ sysctl -p
 
 
 
+-----------------------------
 
+
+wait	Run the command and wait for it to finish Core init scripts (/etc/init.d/rc 4)
+once	Run the command once, don't wait	  Background services, update scripts
+
+
+st:5:once:/etc/init.d/start_services.sh
+
+chmod +x etc/init.d/start_services.sh
+
+
+etc/init.d/start_services.sh
+
+
+#!/bin/sh
+
+echo "[DEBUG] Setting executable permission for /etc/network/network.sh"
+chmod 777 /etc/network/network.sh
+
+echo "[DEBUG] Launching /etc/network/network.sh"
+/etc/network/network.sh &
+
+sleep 1
+
+echo "[DEBUG] Setting executable permission for /home/root/sw_update/sw_update.sh"
+chmod 777 /home/root/sw_update/sw_update.sh
+
+echo "[DEBUG] Launching /home/root/sw_update/sw_update.sh"
+/home/root/sw_update/sw_update.sh &
 
 
 
