@@ -883,7 +883,7 @@ int receive_can_response(int socket_fd, int canid, int size)
  *  
  * @return Returns 0 on success, -1 on failure.  
  */  
-int can_tx_rx_reassemble_frag_data_read(int socket_fd,int canid,int size,uint8_t fun_code)  
+int can_txrx_reassemble_frag_data_read(int socket_fd,int canid,int size,uint8_t fun_code)  
 {  
     struct can_frame send_can_request;  
     uint8_t ret = 0;  
@@ -972,65 +972,188 @@ int can_tx_rx_reassemble_frag_data_read(int socket_fd,int canid,int size,uint8_t
     return 0;  
 }  
 
-int can_tx_rx_reassemble_frag_data_write(int socket_fd, uint32_t base_can_id, uint8_t *data, uint16_t length)
+/**
+ * @brief can_tx_rx_reassemble_frag_data_write
+ *
+ * This function sends fragmented write requests over the CAN bus and waits for
+ * corresponding grant and acknowledgment frames. It ensures message integrity
+ * by checking CRC for every sent and received frame. A final termination frame
+ * is also sent to complete the transaction cleanly.
+ *
+ * @param socket_fd   Socket file descriptor for CAN communication
+ * @param can_req_id  CAN ID to initiate write request
+ * @param data        Pointer to data buffer to write
+ * @param length      Length of data in words (each word = 2 bytes)
+ *
+ * @return 0 on success, -1 on failure
+ */
+
+int can_txrx_reassemble_frag_data_write(int socket_fd, uint32_t can_req_id, uint8_t *data, uint16_t length)
 {
-    int ret;
-    uint32_t can_id;
-    struct can_frame frame;
-    uint16_t remaining = length;
-    uint16_t offset = 0;
-    uint16_t addr_offset = 0;
+    struct can_frame       frame;
+    int                    ret             = 0;
+    unsigned short         crc             = 0;
+    uint32_t               can_res_id      = can_req_id;
+    uint32_t               can_tx_id       = can_req_id;
+    uint32_t               can_tx_ack_id   = can_req_id;
+    uint16_t               remaining_size  = length * 2;
+    uint16_t               bytes_to_copy   = 0;
+    uint16_t               send_data_index = 0;
+    uint16_t               byte_index      = 0;
+    uint8_t                frame_count     = 0;
 
-    /* Step 1: Send TCP_TO_ETU_WRITE_REQ_ID frame */
-    memset(&frame, 0, sizeof(struct can_frame));
-    can_id = (base_can_id & 0xFFF00000) | TCP_TO_ETU_WRITE_REQ_ID << 16 | (base_can_id & 0xFFFF);
-    frame.can_id = can_id;
-    frame.can_dlc = 0;  // No data for request
-    ret = can_send_frame(socket_fd, &frame);
-    if (ret != 0) return -1;
+    /*  
+     * Configure the CAN Write Request frame
+     *
+     * TCP to ETU Write Request: 0x01200233 | ------------------------- | Classic CAN | 8 bytes | Data Frame
+     * Payload Format: [Length][0][0][0][0][0][CRC_H][CRC_L]
+     * MsgType = 0x2 (TCP_TO_ETU_WRITE_REQ_ID)
+     */
 
-    /* Step 2: Wait for ETU_TO_TCP_WRITE_GRANT_ID */
-    ret = can_receive_frame(socket_fd, &frame, CAN_TIMEOUT_MS);
-    if (ret != 0 || ((frame.can_id >> 16) & 0xF) != ETU_TO_TCP_WRITE_GRANT_ID) return -1;
+    frame.can_id  = can_req_id;              /* CAN ID for TCP→ETU Write Request */
+    frame.can_dlc = CAN_DATA_LEN;            /* Full CAN frame (8 bytes) */
+    memset(&frame.data[0], 0, CAN_DATA_LEN); /* Initialize data buffer */
 
-    /* Step 3: Send data in fragments using TCP_TO_ETU_WRITE_CMD_ID */
-    while (remaining > 0)
+    frame.data[0] = length;                  /* First byte = data length */
+
+    crc = GenerateCRC(frame.data, 6);        /* CRC over first 6 bytes */
+    frame.data[6] = (crc >> 8) & 0xFF;       /* CRC High byte */
+    frame.data[7] = crc & 0xFF;              /* CRC Low byte */
+
+    ret = send_can_message(socket_fd, &frame); /* Send Write Request */
+    if (ret != 0)
     {
-        uint8_t frag_len = (remaining > MAX_DATA_PER_FRAME) ? MAX_DATA_PER_FRAME : remaining;
-
-        memset(&frame, 0, sizeof(struct can_frame));
-        can_id = (base_can_id & 0xFFF00000) | TCP_TO_ETU_WRITE_CMD_ID << 16 | ((base_can_id + addr_offset) & 0xFFFF);
-        frame.can_id = can_id;
-        frame.can_dlc = frag_len;
-        memcpy(frame.data, &data[offset], frag_len);
-        add_crc(&frame);  // Assume this function adds CRC to the data (if applicable)
-
-        ret = can_send_frame(socket_fd, &frame);
-        if (ret != 0) return -1;
-
-        /* Step 4: Wait for ETU_TO_TCP_WRITE_ACK_ID */
-        ret = can_receive_frame(socket_fd, &frame, CAN_TIMEOUT_MS);
-        if (ret != 0 || ((frame.can_id >> 16) & 0xF) != ETU_TO_TCP_WRITE_ACK_ID) return -1;
-
-        offset += frag_len;
-        remaining -= frag_len;
-        addr_offset += frag_len / 2;  // Each register = 2 bytes
+        LOG_ERROR("TCP to ETU: Write Request frame send failed\n");
+        return -1;
     }
 
-    /* Step 5: Send TCP_TO_ETU_WRITE_TERM_ID */
-    memset(&frame, 0, sizeof(struct can_frame));
-    can_id = (base_can_id & 0xFFF00000) | TCP_TO_ETU_WRITE_TERM_ID << 16 | ((base_can_id + addr_offset) & 0xFFFF);
-    frame.can_id = can_id;
-    frame.can_dlc = 0;
-    ret = can_send_frame(socket_fd, &frame);
-    if (ret != 0) return -1;
+    LOG_DEBUG("TCP to ETU: Write Request frame sent\n");
 
-    /* Step 6: Wait for ETU_TO_TCP_WRITE_TERM_ID */
-    ret = can_receive_frame(socket_fd, &frame, CAN_TIMEOUT_MS);
-    if (ret != 0 || ((frame.can_id >> 16) & 0xF) != ETU_TO_TCP_WRITE_TERM_ID) return -1;
+    /*
+     * ------------------- ETU to TCP Write Grant -------------------
+     * Expecting response with MsgType = 3 (ETU_TO_TCP_WRITE_GRANT_ID)
+     */
+    can_res_id &= ~(0xF << 16);                          /* Clear bits 16–19 (MsgType field) */
+    can_res_id |= (ETU_TO_TCP_WRITE_GRANT_ID << 16);     /* Set MsgType = 3 for grant */
+
+    ret = receive_can_message_with_filter(socket_fd, &frame, can_res_id);
+    if (ret != 0)
+    {
+        LOG_ERROR("ETU to TCP: Write Grant frame receive failed\n");
+        return -1;
+    }
+
+    LOG_DEBUG("ETU to TCP: Write Grant frame received\n");
+
+    crc = (frame.data[6] << 8) | frame.data[7]; /* Extract CRC */
+    if (GenerateCRC(frame.data, 6) != crc)
+    {
+        LOG_ERROR("CRC mismatch in Write Grant frame\n");
+        return -1;
+    }
+
+    /*
+     * ------------------- TCP to ETU Write Data Frames -------------------
+     */
+    can_tx_id     &= ~(0xF << 16);
+    can_tx_id     |= (TCP_TO_ETU_WRITE_CMD_ID << 16);
+
+    can_tx_ack_id &= ~(0xF << 16);
+    can_tx_ack_id |= (ETU_TO_TCP_WRITE_ACK_ID << 16);
+
+    while (remaining_size > 0)
+    {
+        frame.can_id  = can_tx_id;
+        frame.can_dlc = CAN_DATA_LEN;
+        memset(&frame.data[0], 0, CAN_DATA_LEN);
+
+        bytes_to_copy = (remaining_size >= CAN_MAX_BYTE_SIZE) ? CAN_MAX_BYTE_SIZE : remaining_size;
+
+        for (byte_index = 0; byte_index < bytes_to_copy; byte_index++)
+        {
+            frame.data[byte_index] = data[send_data_index++];
+        }
+
+        remaining_size -= bytes_to_copy;
+
+        crc = GenerateCRC(frame.data, 6);
+        frame.data[6] = (crc >> 8) & 0xFF;
+        frame.data[7] = crc & 0xFF;
+
+        ret = send_can_message(socket_fd, &frame);
+        if (ret != 0)
+        {
+            LOG_ERROR("TCP to ETU: Data frame %d send failed\n", frame_count + 1);
+            return -1;
+        }
+
+        LOG_DEBUG("TCP to ETU: Data frame %d sent\n", ++frame_count);
+
+        ret = receive_can_message_with_filter(socket_fd, &frame, can_tx_ack_id);
+        if (ret != 0)
+        {
+            LOG_ERROR("ETU to TCP: Data frame %d ACK receive failed\n", frame_count);
+            return -1;
+        }
+
+        LOG_DEBUG("ETU to TCP: Data frame %d ACK received\n", frame_count);
+
+        crc = (frame.data[6] << 8) | frame.data[7];
+        if (GenerateCRC(frame.data, 6) != crc)
+        {
+            LOG_ERROR("CRC mismatch in ACK for frame %d\n", frame_count);
+            return -1;
+        }
+
+        can_tx_id     += 3;
+        can_tx_ack_id += 3;
+    }
+
+    /*
+     * ------------------- TCP to ETU Write Termination -------------------
+     */
+    can_tx_id     &= ~(0xF << 16);
+    can_tx_id     |= (TCP_TO_ETU_WRITE_TERM_ID << 16);
+
+    can_tx_ack_id &= ~(0xF << 16);
+    can_tx_ack_id |= (ETU_TO_TCP_WRITE_TERM_ID << 16);
+
+    frame.can_id  = can_tx_id;
+    frame.can_dlc = CAN_DATA_LEN;
+    memset(&frame.data[0], 0, CAN_DATA_LEN);
+    frame.data[6] = 0xFF;
+    frame.data[7] = 0xFF;
+
+    ret = send_can_message(socket_fd, &frame);
+    if (ret != 0)
+    {
+        LOG_ERROR("TCP to ETU: Termination frame send failed\n");
+        return -1;
+    }
+
+    LOG_DEBUG("TCP to ETU: Termination frame sent\n");
+
+    ret = receive_can_message_with_filter(socket_fd, &frame, can_tx_ack_id);
+    if (ret != 0)
+    {
+        LOG_ERROR("ETU to TCP: Termination ACK receive failed\n");
+        return -1;
+    }
+
+    LOG_DEBUG("ETU to TCP: Termination ACK received\n");
+
+    crc = (frame.data[6] << 8) | frame.data[7];
+    if (GenerateCRC(frame.data, 6) != crc)
+    {
+        LOG_ERROR("CRC mismatch in Termination ACK frame\n");
+        return -1;
+    }
+
+    LOG_DEBUG("Write operation successful without errors\n");
 
     return 0;
 }
+
 
 /**  
  * @brief get_own_ip  
@@ -1257,6 +1380,9 @@ int main()
      */
     uint8_t               ret = 0;
     int                   rc;
+    uint8_t               *write_value = received_data; 
+    uint8_t               clear_flag   = CLEAR_NONE; 
+    uint8_t               cp           = 0; 
  
     /*
      * EE_Prom variables
@@ -1414,14 +1540,7 @@ int main()
 	     * Receive Modbus data from the client
 	     */
             rc = modbus_receive(ctx, query);
-
-	    for (int i = 0; i < rc; i++)
-             {
-                  printf("0x%02X ", query[i]);
-             }
-
-             printf("\n");
-
+	    
 	    /* 
 	     * Returns any error, close the connection and wait for new connection
 	     */ 
@@ -1448,12 +1567,6 @@ int main()
             fun_code = query[7];
 	    tcp_found = 0;
             found     = 0;
-	    
-	    
-	    printf("Start Address: 0x%04X (%u)\n", start_addr, start_addr);
-            printf("Length: 0x%04X (%u)\n", length, length);
-            printf("Function Code: 0x%02X (%u)\n", fun_code, fun_code);
-
 
 	    /*
 	     * Search through all TCP datasets for matching register
@@ -1564,7 +1677,7 @@ int main()
 	          /*
 		   * If both lseek and read were successful, go to the reply label to send response
 	           */
-		   goto reply_modbus;
+		   goto EE_PROM_reply;
             } 
 
 	    /*
@@ -1631,9 +1744,9 @@ int main()
 
             LOG_DEBUG("Requested data size: %d bytes\n", length);
 
-            uint8_t *write_value = received_data; 
+            write_value = received_data; 
 	    
-	    if( (fun_code  0x06) || (fun_code == 0x10))
+	    if( (fun_code =  0x06) || (fun_code == 0x10))
 	    {
                LOG_DEBUG("Write operation detected: Function Code = 0x%02X\n", fun_code);
                     
@@ -1658,13 +1771,13 @@ int main()
                     * Extract single register value from query
                     */
                     length=1;
-                    write_value[0] = query[10]  
+                    write_value[0] = query[10];  
                     write_value[1] = query[11];
                    
 		   /*
                     * Transmit CAN Write Request and handle response
                     */
-                    ret = can_tx_rx_reassemble_frag_data_write(socket_fd, can_id, write_value, length);
+                    ret = can_txrx_reassemble_frag_data_write(socket_fd, can_id, write_value, length);
 		    if (ret != 0)
                      {
                        LOG_ERROR("CAN communication failed\n\n");
@@ -1677,15 +1790,15 @@ int main()
 		 {
                     length = (query[10] << 8) | query[11];
                     
-		    for (int i = 0; i < length * 2 ; i++) 
+		    for (cp = 0; cp < length * 2 ; cp++) 
 		    {
-                      write_value[i] = query[13];
+                      write_value[cp] = query[cp + 13];
                     }
                    
 		   /*
                     * Transmit CAN Write Request and handle response
                     */
-                    ret = can_tx_rx_reassemble_frag_data_write(socket_fd, can_id, write_value, length);
+                    ret = can_txrx_reassemble_frag_data_write(socket_fd, can_id, write_value, length);
                     if (ret != 0)
                      {
                        LOG_ERROR("CAN communication failed\n\n");
@@ -1693,7 +1806,9 @@ int main()
                        continue;
                      }
 
-		 }	 
+		 }	
+	    
+	     	goto write_okey_riply;	
             } 
 
             /*
@@ -1715,7 +1830,7 @@ int main()
 	     /*
               * Send CAN request and receive response
               */
-             ret = can_tx_rx_reassemble_frag_data_read(socket_fd, can_id, length, fun_code);
+             ret = can_txrx_reassemble_frag_data_read(socket_fd, can_id, length, fun_code);
              if (ret != 0)
              {
                  LOG_ERROR("CAN communication failed\n\n");
@@ -1726,7 +1841,7 @@ int main()
               * Process received CAN data into Modbus registers
               */
 
-reply_modbus:	      
+EE_PROM_reply:	      
              start_addr--;
              clear_flag = CLEAR_NONE;
 	     /*
@@ -1787,7 +1902,8 @@ reply_modbus:
                                                                             received_data[2 * data_index + 1];
                        }       
                } 
-	     
+
+write_okey_riply:	    
              /*
               * Send Modbus response to client
               */
