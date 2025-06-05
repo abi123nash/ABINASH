@@ -566,6 +566,7 @@ int receive_can_message_with_filter(int socket_fd, struct can_frame *frame, int 
         FD_ZERO(&read_fds);
         FD_SET(socket_fd, &read_fds);
 
+
         /*
          * Poll every 200 milliseconds
          */
@@ -1390,6 +1391,7 @@ int main()
     uint32_t               fd; 
     uint32_t               offset; 
     uint32_t               Read; 
+    uint32_t               Write=0; 
 
     /*
      * Initialize Modbus TCP context
@@ -1540,7 +1542,7 @@ int main()
 	     * Receive Modbus data from the client
 	     */
             rc = modbus_receive(ctx, query);
-	    
+	   
 	    /* 
 	     * Returns any error, close the connection and wait for new connection
 	     */ 
@@ -1567,6 +1569,10 @@ int main()
             fun_code = query[7];
 	    tcp_found = 0;
             found     = 0;
+	    /*
+	     * THIS received_data buffer we are using read fun for can so same memory use for write also
+	     */
+            write_value = received_data; 
 
 	    /*
 	     * Search through all TCP datasets for matching register
@@ -1581,7 +1587,12 @@ int main()
 
 		    if (!(tcp_selected_array[0].reg_address % 10000 <= start_addr) ||
 				    !(tcp_selected_array[tcp_current_dataset_size - 1].reg_address % 10000 >= start_addr))
-			    continue;
+		    {
+
+			     for (data_index = 0; data_index < tcp_current_dataset_size; data_index++)
+                                      offset = offset +  tcp_selected_array[data_index].size;
+			     continue;
+		    }
 		    for (data_index = 0; data_index < tcp_current_dataset_size; data_index++)
 		    {
 			    offset = offset +  tcp_selected_array[data_index].size;
@@ -1617,52 +1628,107 @@ int main()
 			    break;
 	    }
 
-
+	    if ((fun_code == 0x03) || (fun_code == 0x04) || (fun_code == 0x10))
+                            Write = Read = length*2;
+            else if (fun_code == 0x06)
+                            Write = Read = 2;
+            else if( (fun_code == 0x01) || (fun_code == 0x02) )
+                            Read = length;
+	    else
+ 	     {
+                LOG_ERROR("Fun Code Not Find: Illegal = %d\n", total_size);
+                /*
+                 * Set error values in all register types
+                 */
+                modbus_reply_exception(ctx, query, MODBUS_EXCEPTION_ILLEGAL_DATA_ADDRESS);
+                continue;
+	     }	     
             /* 
 	     * If we found a matching register from the TCP dataset    
 	     */          
 	    if(tcp_found)
-	    { 
+	    {
+	  
 
-	        if ((fun_code == 3) || (fun_code == 4))
-                       Read = length*2;
-		else
-		       Read = length;
+	       /*
+                * if the requested size is greater than avail size,
+                * return error
+                */
 
+                total_size = 0;
+                for (data_index = data_index; data_index < tcp_current_dataset_size; data_index++)
+                {
+                   total_size += tcp_selected_array[data_index].size;
+                }
 
-                 /*
- 	          * if the requested size is greater than avail size,
-                  * return error
-                  */
-
-	          total_size = 0;
-	          for (data_index = data_index; data_index < tcp_current_dataset_size; data_index++)
-                  {
-                      total_size += tcp_selected_array[data_index].size;
-                  }
-
-                 if (total_size < Read)
-                 {
-                    LOG_ERROR("Register address %u not found in any dataset\n", start_addr);
+                if(total_size < Read)
+                {
+                    LOG_ERROR("Register address found but size is more then the dataset avalabel = %d bytes\n", total_size);
 
                    /*
                     * Set error values in all register types
                     */
                     modbus_reply_exception(ctx, query, MODBUS_EXCEPTION_ILLEGAL_DATA_ADDRESS);
                     continue;
-                 }   
-
-	        /*
-	 	 * Move the file pointer to the correct offset where the register data is stored	  
-		 */  
-	        ret = lseek(fd, offset, SEEK_SET);
-                if (ret == -1)
-                {
+                 }
+   
+	         /*
+                  * Move the file pointer to the correct offset where the register data is stored
+                  */
+                 ret = lseek(fd, offset, SEEK_SET);
+                 if (ret == -1)
+                 {
                      LOG_ERROR("lseek failed: %s\n", strerror(errno));
                      modbus_reply_exception(ctx, query, MODBUS_EXCEPTION_SLAVE_OR_SERVER_FAILURE);
                      continue;
-                }
-	       
+                 }	
+
+                if((fun_code == 0x06) || (fun_code == 0x10))
+	         {
+	              LOG_DEBUG("Write operation detected: FOR EEPROM  Function Code = 0x%02X\n", fun_code);
+
+		      if(fun_code == 0x06)
+		      {
+ 
+                          /*
+                           * Extract single register value from query
+                           */
+                           write_value[0] = query[10];
+                           write_value[1] = query[11];
+       		         
+		           ret = write(fd, write_value, Write);
+                           if (ret != Write) 
+			   {
+                              LOG_ERROR("Failed to write EIP_DeviceConfig to EEPROM\n");
+                              modbus_reply_exception(ctx, query, MODBUS_EXCEPTION_SLAVE_OR_SERVER_FAILURE);
+                              continue;
+                           }
+
+		        } 
+	               else
+	                {
+                            for (cp = 0; cp < Write ; cp++)
+                              {
+                                 write_value[cp] = query[cp + 13];
+                              }
+
+			    ret = write(fd, write_value, Write);
+                            if (ret != Write)
+                            {
+                               LOG_ERROR("Failed to write EIP_DeviceConfig to EEPROM\n");
+                               modbus_reply_exception(ctx, query, MODBUS_EXCEPTION_SLAVE_OR_SERVER_FAILURE);
+                               continue;
+                            }
+
+		        }
+
+                     /*
+                      * If both lseek and write were successful, go to the reply label to send response
+                      */
+                      goto EE_PROM_write_reply;
+		       
+		    }	
+
 	        /*
 		 * Read 'length' number of bytes from the file into received_data buffer
 		 */
@@ -1677,7 +1743,7 @@ int main()
 	          /*
 		   * If both lseek and read were successful, go to the reply label to send response
 	           */
-		   goto EE_PROM_reply;
+		   goto EE_PROM_Read_reply;
             } 
 
 	    /*
@@ -1744,9 +1810,8 @@ int main()
 
             LOG_DEBUG("Requested data size: %d bytes\n", length);
 
-            write_value = received_data; 
 	    
-	    if( (fun_code =  0x06) || (fun_code == 0x10))
+	    if( (fun_code ==  0x06) || (fun_code == 0x10))
 	    {
                LOG_DEBUG("Write operation detected: Function Code = 0x%02X\n", fun_code);
                     
@@ -1788,9 +1853,8 @@ int main()
 		  } 
 		else
 		 {
-                    length = (query[10] << 8) | query[11];
                     
-		    for (cp = 0; cp < length * 2 ; cp++) 
+		    for (cp = 0; cp < Write ; cp++) 
 		    {
                       write_value[cp] = query[cp + 13];
                     }
@@ -1841,7 +1905,7 @@ int main()
               * Process received CAN data into Modbus registers
               */
 
-EE_PROM_reply:	      
+EE_PROM_Read_reply:	      
              start_addr--;
              clear_flag = CLEAR_NONE;
 	     /*
@@ -1903,7 +1967,8 @@ EE_PROM_reply:
                        }       
                } 
 
-write_okey_riply:	    
+write_okey_riply:	   
+EE_PROM_write_reply:	     
              /*
               * Send Modbus response to client
               */
@@ -1930,5 +1995,6 @@ write_okey_riply:
     modbus_mapping_free(mb_mapping);
     modbus_free(ctx);
     return 0;
+
 }
 
