@@ -890,6 +890,8 @@ int can_txrx_reassemble_frag_data_read(int socket_fd,int canid,int size,uint8_t 
     uint8_t ret = 0;  
     unsigned short crc=0;
 
+    LOG_DEBUG("CAN Read communication will start: Preparing to send read request to CAN ID = %d (0x%X)\n\n", canid, canid);
+
     /*  
      * Configure the CAN request frame 
      *
@@ -920,7 +922,7 @@ int can_txrx_reassemble_frag_data_read(int socket_fd,int canid,int size,uint8_t 
         return -1;  
     }  
     
-    LOG_DEBUG("TCP to ETU: Data Read Request sent.\n");  
+    LOG_DEBUG("TCP to ETU: Data Read Request sent.\n\n");  
 
    /*
     * For Function Code 1 (Read Coils) and Function Code 2 (Read Discrete Inputs),
@@ -1003,6 +1005,8 @@ int can_txrx_reassemble_frag_data_write(int socket_fd, uint32_t can_req_id, uint
     uint16_t               byte_index      = 0;
     uint8_t                frame_count     = 0;
 
+    LOG_DEBUG("CAN Write communication will start: Preparing to send write request to CAN ID = %d (0x%X)\n\n", can_req_id, can_req_id);
+
     /*  
      * Configure the CAN Write Request frame
      *
@@ -1044,7 +1048,7 @@ int can_txrx_reassemble_frag_data_write(int socket_fd, uint32_t can_req_id, uint
         return -1;
     }
 
-    LOG_DEBUG("ETU to TCP: Write Grant frame received\n");
+    LOG_DEBUG("ETU to TCP: Write Grant frame received\n\n");
 
     crc = (frame.data[6] << 8) | frame.data[7]; /* Extract CRC */
     if (GenerateCRC(frame.data, 6) != crc)
@@ -1475,12 +1479,12 @@ int main()
         return -1;
     }
 
+    rfilter.can_id = CAN_EFF_FLAG;             // Match only extended ID flag
+    rfilter.can_mask = CAN_EFF_FLAG;           // Filter only by EFF flag
+    
     /*
      * Set filter: accept only 29-bit CAN frames
      */ 
-    rfilter.can_id = CAN_EFF_FLAG;             // Match only extended ID flag
-    rfilter.can_mask = CAN_EFF_FLAG;           // Filter only by EFF flag
-
     if (setsockopt(socket_fd, SOL_CAN_RAW, CAN_RAW_FILTER, &rfilter, sizeof(rfilter)) < 0)
     {
        LOG_ERROR("Error setting CAN filter for Extended ID frames\n");
@@ -1548,7 +1552,7 @@ int main()
 	     */ 
 	    if (rc == -1)
             {
-                LOG_ERROR("Client disconnected.\n");
+                LOG_ERROR("Client disconnected.\n\n");
                 close(client_socket);
                 break;
             }
@@ -1560,194 +1564,277 @@ int main()
               continue;     
 	    }		       
 	    
-            
+	    log("\n\n"); 
+	    LOG_DEBUG("New request coming from Modbus client.\n");
 	    /*
              * Parse Modbus request parameters
              */
-            start_addr = ((query[8] << 8) | query[9]) + 1;
-            length = (query[10] << 8) | query[11];
-            fun_code = query[7];
-	    tcp_found = 0;
-            found     = 0;
+            start_addr  = ((query[8] << 8) | query[9]) + 1;
+            length      = (query[10] << 8) | query[11];
+            fun_code    = query[7];
 	    /*
-	     * THIS received_data buffer we are using read fun for can so same memory use for write also
-	     */
-            write_value = received_data; 
+	     * Reset var
+	     */  
+	    tcp_found   = 0;
+            found       = 0;
+            offset      = 0;
+            
+	    /*
+             * The received_data buffer is shared for both CAN read and write operations.
+             */
+            write_value = received_data;
 
-	    /*
-	     * Search through all TCP datasets for matching register
-	     */
-            offset=0;
-	    for (dataset_index = 0; dataset_index < tcp_total_datasets ; dataset_index++)
+            /*
+             * Here we check whether the requested function code is a valid operation or not.
+             */
+            if ((fun_code == 0x03) || (fun_code == 0x04) || (fun_code == 0x10)) 
 	    {
-		    tcp_selected_array = tcp_data[dataset_index];
-		    tcp_current_dataset_size = tcp_dataset_counts[dataset_index];
+                Write = Read = length * 2;
+            } 
+	    else if (fun_code == 0x06) 
+	    {
+                Write = Read = 2;
+            } 
+	    else if ((fun_code == 0x01) || (fun_code == 0x02)) 
+	    {
+                Read = length;
+            } 
+	    else 
+	    {
+                LOG_ERROR("Function code not found: Illegal = %d\n", fun_code);
 
-		    LOG_DEBUG("Processing TCP dataset %d with size %d\n", dataset_index, tcp_current_dataset_size);
-
-		    if (!(tcp_selected_array[0].reg_address % 10000 <= start_addr) ||
-				    !(tcp_selected_array[tcp_current_dataset_size - 1].reg_address % 10000 >= start_addr))
-		    {
-
-			     for (data_index = 0; data_index < tcp_current_dataset_size; data_index++)
-                                      offset = offset +  tcp_selected_array[data_index].size;
-			     continue;
-		    }
-		    for (data_index = 0; data_index < tcp_current_dataset_size; data_index++)
-		    {
-			    offset = offset +  tcp_selected_array[data_index].size;
-			    if (start_addr != (tcp_selected_array[data_index].reg_address % 10000))
-				    continue;
-                             
-			    offset = offset -  tcp_selected_array[data_index].size;
-			    
-			    if (tcp_selected_array[data_index].fun_code[0] == query[7] ||
-			        tcp_selected_array[data_index].fun_code[1] == query[7] ||
-			        tcp_selected_array[data_index].fun_code[2] == query[7])
-			    {
-				    tcp_found = 1;
-
-				    /* Print matched register details */
-				    LOG_INFO("Found TCP Register:\n");
-				    LOG_INFO("  Name        : %s\n", tcp_selected_array[data_index].attribute_name);
-				    LOG_INFO("  Address     : %u (0x%X)\n", tcp_selected_array[data_index].reg_address, tcp_selected_array[data_index].reg_address);
-				    LOG_INFO("  Size        : %u\n", tcp_selected_array[data_index].size);
-				    LOG_INFO("  Function(s) : %02X %02X %02X\n",
-						    tcp_selected_array[data_index].fun_code[0],
-						    tcp_selected_array[data_index].fun_code[1],
-						    tcp_selected_array[data_index].fun_code[2]);
-				    break;
-			    }
-			    else
-			    {
-				    break;
-			    }
-		    }
-
-		    if (tcp_found)
-			    break;
-	    }
-
-	    if ((fun_code == 0x03) || (fun_code == 0x04) || (fun_code == 0x10))
-                            Write = Read = length*2;
-            else if (fun_code == 0x06)
-                            Write = Read = 2;
-            else if( (fun_code == 0x01) || (fun_code == 0x02) )
-                            Read = length;
-	    else
- 	     {
-                LOG_ERROR("Fun Code Not Find: Illegal = %d\n", total_size);
                 /*
-                 * Set error values in all register types
+                 * Set error values in all register types.
                  */
-                modbus_reply_exception(ctx, query, MODBUS_EXCEPTION_ILLEGAL_DATA_ADDRESS);
-                continue;
-	     }	     
-            /* 
-	     * If we found a matching register from the TCP dataset    
-	     */          
-	    if(tcp_found)
-	    {
-	  
-
-	       /*
-                * if the requested size is greater than avail size,
-                * return error
-                */
-
-                total_size = 0;
-                for (data_index = data_index; data_index < tcp_current_dataset_size; data_index++)
+                ret = modbus_reply_exception(ctx, query, MODBUS_EXCEPTION_ILLEGAL_DATA_ADDRESS);
+		if (ret == -1)
                 {
-                   total_size += tcp_selected_array[data_index].size;
+                    LOG_ERROR("Failed to send Modbus exception response\n");
                 }
 
-                if(total_size < Read)
-                {
-                    LOG_ERROR("Register address found but size is more then the dataset avalabel = %d bytes\n", total_size);
+                continue;
+            }
 
-                   /*
-                    * Set error values in all register types
-                    */
-                    modbus_reply_exception(ctx, query, MODBUS_EXCEPTION_ILLEGAL_DATA_ADDRESS);
+            /*
+             * Search through all TCP datasets for a matching register.
+             * This dataset is for TCP configuration only — no CAN bus operations.
+             */
+            for (dataset_index = 0; dataset_index < tcp_total_datasets; dataset_index++) 
+	    {
+                tcp_selected_array = tcp_data[dataset_index];
+                tcp_current_dataset_size = tcp_dataset_counts[dataset_index];
+                 
+		LOG_DEBUG("Processing TCP dataset %d out of %d total datasets.\n", dataset_index, tcp_current_dataset_size);
+
+                if (!(tcp_selected_array[0].reg_address % 10000 <= start_addr) ||
+                    !(tcp_selected_array[tcp_current_dataset_size - 1].reg_address % 10000 >= start_addr)) 
+		{
+
+                    for (data_index = 0; data_index < tcp_current_dataset_size; data_index++) 
+		    {
+                        offset += tcp_selected_array[data_index].size;
+                    }
                     continue;
-                 }
-   
-	         /*
-                  * Move the file pointer to the correct offset where the register data is stored
-                  */
-                 ret = lseek(fd, offset, SEEK_SET);
-                 if (ret == -1)
-                 {
-                     LOG_ERROR("lseek failed: %s\n", strerror(errno));
-                     modbus_reply_exception(ctx, query, MODBUS_EXCEPTION_SLAVE_OR_SERVER_FAILURE);
-                     continue;
-                 }	
+                }
 
-                if((fun_code == 0x06) || (fun_code == 0x10))
-	         {
-	              LOG_DEBUG("Write operation detected: FOR EEPROM  Function Code = 0x%02X\n", fun_code);
+                for (data_index = 0; data_index < tcp_current_dataset_size; data_index++) 
+		{
+                    offset += tcp_selected_array[data_index].size;
 
-		      if(fun_code == 0x06)
-		      {
- 
-                          /*
-                           * Extract single register value from query
-                           */
-                           write_value[0] = query[10];
-                           write_value[1] = query[11];
-       		         
-		           ret = write(fd, write_value, Write);
-                           if (ret != Write) 
-			   {
-                              LOG_ERROR("Failed to write EIP_DeviceConfig to EEPROM\n");
-                              modbus_reply_exception(ctx, query, MODBUS_EXCEPTION_SLAVE_OR_SERVER_FAILURE);
-                              continue;
-                           }
+                    if (start_addr != (tcp_selected_array[data_index].reg_address % 10000)) 
+		    
+		    {
+                        continue;
+                    }
 
-		        } 
-	               else
-	                {
-                            for (cp = 0; cp < Write ; cp++)
-                              {
-                                 write_value[cp] = query[cp + 13];
-                              }
+                    offset -= tcp_selected_array[data_index].size;
 
-			    ret = write(fd, write_value, Write);
-                            if (ret != Write)
+                    if (tcp_selected_array[data_index].fun_code[0] == fun_code ||
+                        tcp_selected_array[data_index].fun_code[1] == fun_code ||
+                        tcp_selected_array[data_index].fun_code[2] == fun_code) 
+		    {   
+
+                        tcp_found = 1;
+
+                        /* Print matched register details */
+                        LOG_DEBUG("Found TCP Register:\n");
+                        LOG_DEBUG("  Name        : %s\n", tcp_selected_array[data_index].attribute_name);
+                        LOG_DEBUG("  Address     : %u (0x%X)\n", tcp_selected_array[data_index].reg_address, tcp_selected_array[data_index].reg_address);
+                        LOG_DEBUG("  Size        : %u\n", tcp_selected_array[data_index].size);
+                        LOG_DEBUG("  Function(s) : %02X %02X %02X\n\n",
+                                 tcp_selected_array[data_index].fun_code[0],
+                                 tcp_selected_array[data_index].fun_code[1],
+                                 tcp_selected_array[data_index].fun_code[2]);
+
+                        break;
+                    } 
+		    else 
+		    {   
+	                /*
+                         * Register address matches, but requested function code is not supported.
+                         * Print debug information for diagnosis.
+                         */
+                        LOG_DEBUG("Register address matched (%u), but requested function code 0x%02X is not supported.\n",
+                                                                                            tcp_selected_array[data_index].reg_address % 10000, fun_code);
+                        LOG_DEBUG("Supported Function Codes: %02X %02X %02X\n\n",
+                                                                                tcp_selected_array[data_index].fun_code[0],
+                                                                                tcp_selected_array[data_index].fun_code[1],
+                                                                                tcp_selected_array[data_index].fun_code[2]);
+                        break;
+                    }
+                }
+
+                if (tcp_found)
+                    break;
+            }
+            
+	    log("\n"); 
+            
+            /* 
+             * If we found a matching register from the TCP dataset    
+             */
+            if (tcp_found)
+            {
+                
+	        LOG_DEBUG("Received a TCP module configuration request.\n");
+
+	       /*
+                * If the requested size is greater than available size,
+                * calculate the remaining dataset size from the matched point.
+                * If the user requests more than the available size, it is invalid.
+                * Return an error.
+                */
+                
+		total_size = 0;
+                for (data_index = data_index; data_index < tcp_current_dataset_size; data_index++)
+                {
+                    total_size += tcp_selected_array[data_index].size;
+                }
+
+                /*
+                 * If the requested size is greater than available size,
+                 * return an error
+                 */
+                if (total_size < Read)
+                {
+                    LOG_ERROR("Register address found, but requested size (%d bytes) exceeds available dataset size (%d bytes)\n", Read, total_size);
+
+                    /*
+                     * Set error values in all register types
+                     */
+                    ret = modbus_reply_exception(ctx, query, MODBUS_EXCEPTION_ILLEGAL_DATA_ADDRESS);
+		    if (ret == -1)
+                    {
+                       LOG_ERROR("Failed to send Modbus exception response\n");
+                    }
+                    continue;
+                }
+
+                /*
+                 * Move the file pointer to the correct offset where the register data is stored
+                 */
+                ret = lseek(fd, offset, SEEK_SET);
+                if (ret == -1)
+                {
+                    LOG_ERROR("lseek failed: %s\n", strerror(errno));
+                    ret = modbus_reply_exception(ctx, query, MODBUS_EXCEPTION_SLAVE_OR_SERVER_FAILURE);
+		    if (ret == -1)
+                    {
+                       LOG_ERROR("Failed to send Modbus exception response\n");
+                    }
+                    continue;
+                }
+
+                /*
+                 * Write operation supported for function codes:
+                 * 0x06 = Single Register, 0x10 = Multiple Registers
+                 */
+                if ((fun_code == 0x06) || (fun_code == 0x10))
+                {
+                    LOG_DEBUG("EEPROM Write operation detected: Configartion EE_prome Function Code = 0x%02X\n", fun_code);
+
+                    if (fun_code == 0x06)
+                    {
+                        /*
+                         * Extract single register value from query
+                         */
+                        write_value[0] = query[10];
+                        write_value[1] = query[11];
+
+                        /*
+                         * Write the value to EEPROM at the correct offset
+                         */
+                        ret = write(fd, write_value, Write);
+                        if (ret != Write)
+                        {
+                            LOG_ERROR("Failed to write single register to EEPROM (expected %d bytes, wrote %d)\n", Write, ret);
+                            ret = modbus_reply_exception(ctx, query, MODBUS_EXCEPTION_SLAVE_OR_SERVER_FAILURE);
+			    if (ret == -1)
                             {
-                               LOG_ERROR("Failed to write EIP_DeviceConfig to EEPROM\n");
-                               modbus_reply_exception(ctx, query, MODBUS_EXCEPTION_SLAVE_OR_SERVER_FAILURE);
-                               continue;
+                                LOG_ERROR("Failed to send Modbus exception response\n");
                             }
+                            continue;
+                        }
+                    }
+                    else
+                    {
+                        for (cp = 0; cp < Write; cp++)
+                        {
+                            write_value[cp] = query[cp + 13];
+                        }
 
-		        }
+                        /*
+                         * Write multiple values to EEPROM at the correct offset
+                         */
+                        ret = write(fd, write_value, Write);
+                        if (ret != Write)
+                        {
+                            LOG_ERROR("Failed to write multiple registers to EEPROM (expected %d bytes, wrote %d)\n", Write, ret);
+                            ret = modbus_reply_exception(ctx, query, MODBUS_EXCEPTION_SLAVE_OR_SERVER_FAILURE);
+			    if (ret == -1)
+                            {
+                                LOG_ERROR("Failed to send Modbus exception response\n");
+                            } 
+                            continue;
+                        }
+                    }
 
-                     /*
-                      * If both lseek and write were successful, go to the reply label to send response
-                      */
-                      goto EE_PROM_write_reply;
-		       
-		    }	
+                    LOG_DEBUG("EEPROM write operation successful\n");
 
-	        /*
-		 * Read 'length' number of bytes from the file into received_data buffer
-		 */
+                    /*
+                     * If both lseek and write were successful, go to the reply label to send response
+                     */
+                    goto EE_PROM_write_reply;
+                }
+
+		LOG_DEBUG("EEPROM Read operation detected: Configartion EE_prome Function Code = 0x%02X\n", fun_code);
+
+                /*
+                 * Read number of bytes from the file into received_data buffer
+                 */
                 ret = read(fd, received_data, Read);
                 if (ret != Read)
                 {
-                   LOG_ERROR("read failed or incomplete (expected %d, got %d): %s\n", length, ret, strerror(errno));
-                   modbus_reply_exception(ctx, query, MODBUS_EXCEPTION_SLAVE_OR_SERVER_FAILURE);
-                   continue;
+                    LOG_ERROR("EEPROM read failed or incomplete (expected %d, got %d): %s\n", Read, ret, strerror(errno));
+                    ret = modbus_reply_exception(ctx, query, MODBUS_EXCEPTION_SLAVE_OR_SERVER_FAILURE);
+		    if (ret == -1)
+                    {
+                        LOG_ERROR("Failed to send Modbus exception response\n");
+                    }
+                    continue;
                 }
 
-	          /*
-		   * If both lseek and read were successful, go to the reply label to send response
-	           */
-		   goto EE_PROM_Read_reply;
-            } 
+                LOG_DEBUG("EEPROM read operation successful\n");
 
+                /*
+                 * If both lseek and read were successful, go to the reply label to send response
+                 */
+                goto EE_PROM_Read_reply;
+            }
+            
 	    /*
-             * Search through all datasets for matching register
+             * Search through all datasets for a matching register.
+             * This dataset is for CAN module read/write operation support.
              */
             for (dataset_index = 0; dataset_index < total_datasets; dataset_index++)
             {
@@ -1755,155 +1842,231 @@ int main()
                 data_header = header[dataset_index].data_header;
                 current_dataset_size = dataset_counts[dataset_index];
 
-                LOG_DEBUG("Processing dataset %d with size %d\n", dataset_index, current_dataset_size);
-			
-                if( !(selected_array[0].reg_address % 10000 <= start_addr) ||
-			!(selected_array[current_dataset_size -1].reg_address % 10000 >= start_addr) )
-	            continue;
-                
+                LOG_DEBUG("Processing CAN dataset %d out of %d total datasets.\n", dataset_index, current_dataset_size);
+
+                if (!(selected_array[0].reg_address % 10000 <= start_addr) ||
+                    !(selected_array[current_dataset_size - 1].reg_address % 10000 >= start_addr))
+                    continue;
+
                 for (data_index = 0; data_index < current_dataset_size; data_index++)
                 {
-
-		    if (start_addr != (selected_array[data_index].reg_address % 10000))
+                    if (start_addr != (selected_array[data_index].reg_address % 10000))
                         continue;
-                    
-                    if (selected_array[data_index].fun_code[0] == query[7] ||
-                        selected_array[data_index].fun_code[1] == query[7] ||
-                        selected_array[data_index].fun_code[2] == query[7])
+
+                    if (selected_array[data_index].fun_code[0] == fun_code ||
+                        selected_array[data_index].fun_code[1] == fun_code ||
+                        selected_array[data_index].fun_code[2] == fun_code)
                     {
                         found = 1;
+
+                        /* Print matched CAN register details */
+                        LOG_DEBUG("Found CAN Register:\n");
+                        LOG_DEBUG("  Name        : %s\n", selected_array[data_index].attribute_name);
+                        LOG_DEBUG("  Address     : %u (0x%X)\n", selected_array[data_index].reg_address, selected_array[data_index].reg_address);
+                        LOG_DEBUG("  Size        : %u\n", selected_array[data_index].size);
+                        LOG_DEBUG("  Function(s) : %02X %02X %02X\n",
+                                 selected_array[data_index].fun_code[0],
+                                 selected_array[data_index].fun_code[1],
+                                 selected_array[data_index].fun_code[2]);
+
                         break;
                     }
-	            else
-		        break; 
-		    
-		}
-		               
-		if (found) break;
-            }    
+                    else
+                    {
+			/*
+                         * Register address matches, but requested function code is not supported.
+                         * Print debug information for diagnosis.
+                         */
+                        LOG_DEBUG("Register address matched (%u), but requested function code 0x%02X is not supported.\n",
+                                                                                            selected_array[data_index].reg_address % 10000, fun_code);
+                        LOG_DEBUG("Supported Function Codes: %02X %02X %02X\n\n",
+                                                                                 selected_array[data_index].fun_code[0],
+                                                                                 selected_array[data_index].fun_code[1],
+                                                                                 selected_array[data_index].fun_code[2]);
+                        break;
+                    }
+                }
 
-            /*
+                if (found)
+                    break;
+            } 
+            
+	    /*
              * Handle case when register not found
 	     * Return Error message to the modbus client
-	     *
-	     * if the requested size is greater than avail size,
-	     * return error
-             */
-
-	    total_size = 0;
-            for (data_index = data_index; data_index < current_dataset_size; data_index++)
-            {
-                    total_size += selected_array[data_index].size;
-            }
-            if (!found || (total_size < length * 2))
+	     */
+            
+            if (!found)
             {
                 LOG_ERROR("Register address %u not found in any dataset\n", start_addr);
 
                 /*
                  * Set error values in all register types
                  */
-                modbus_reply_exception(ctx, query, MODBUS_EXCEPTION_ILLEGAL_DATA_ADDRESS);
+                ret = modbus_reply_exception(ctx, query, MODBUS_EXCEPTION_ILLEGAL_DATA_ADDRESS);
+                if (ret == -1)
+                {
+                    LOG_ERROR("Failed to send Modbus exception response\n");
+                }
                 continue;
             }
+            
+	    /*
+             * If the requested size is greater than available size,
+             * calculate the remaining dataset size from the matched point.
+             * If the user requests more than the available size, it is invalid.
+             * Return an error.
+             */
+            
+	    total_size = 0;
+            for (data_index = data_index; data_index < current_dataset_size; data_index++)
+            {
+                total_size += selected_array[data_index].size;
+            }
 
+	    /*
+	     * if the requested size is greater than avail size,
+	     * return error
+             */
+            if (total_size < Read)
+            {
+                LOG_ERROR("Register address found, but requested size (%d bytes) exceeds available dataset size (%d bytes)\n", Read, total_size);
+
+                /*
+                 * Set error values in all register types
+                 */
+                ret = modbus_reply_exception(ctx, query, MODBUS_EXCEPTION_ILLEGAL_DATA_ADDRESS);
+                if (ret == -1)
+                {
+                    LOG_ERROR("Failed to send Modbus exception response\n");
+                }
+                continue;
+            }
+            
             LOG_DEBUG("Found data at index: %d\n", register_index);
 
-            LOG_DEBUG("Requested data size: %d bytes\n", length);
+            LOG_DEBUG("Requested data size: %d bytes\n\n", length);
 
-	    
-	    if( (fun_code ==  0x06) || (fun_code == 0x10))
-	    {
-               LOG_DEBUG("Write operation detected: Function Code = 0x%02X\n", fun_code);
-                    
-	            /*
-                     * Prepare CAN message
+            /*
+             * This is CAN Module write operation.
+             * If the function code matches, a write operation will happen.
+             * Supported function codes: 0x06 & 0x10.
+             */
+            if ((fun_code == 0x06) || (fun_code == 0x10))
+            {
+                LOG_DEBUG("Write operation detected: For CAN module, Function Code = 0x%02X\n", fun_code);
+
+                /*
+                 * Prepare CAN message
+                 */
+                req_type = TCP_TO_ETU_WRITE_REQ_ID;
+
+                /*
+                 * Construct the CAN ID
+                 */
+                can_id = (0 << 27) |
+                         (1 << 23) |
+                         (data_header << 20) |
+                         (req_type << 16) |
+                         (start_addr);
+
+                if (fun_code == 0x06)
+                {
+                    /*
+                     * Extract single register value from query
                      */
-                    req_type = TCP_TO_ETU_WRITE_REQ_ID;
+                    length = 1;
+                    write_value[0] = query[10];
+                    write_value[1] = query[11];
 
                     /*
-                     * Construct the CAN id
+                     * Transmit CAN Write Request and handle response
                      */
-                    can_id = (0 << 27) |
-                             (1 << 23) |
-                             (data_header << 20) |
-                             (req_type << 16) |
-                             (start_addr);
-
-
-	        if(fun_code ==  0x06)
-	         {
-                   /*
-                    * Extract single register value from query
-                    */
-                    length=1;
-                    write_value[0] = query[10];  
-                    write_value[1] = query[11];
-                   
-		   /*
-                    * Transmit CAN Write Request and handle response
-                    */
-                    ret = can_txrx_reassemble_frag_data_write(socket_fd, can_id, write_value, length);
-		    if (ret != 0)
-                     {
-                       LOG_ERROR("CAN communication failed\n\n");
-                       modbus_reply_exception(ctx, query, MODBUS_EXCEPTION_GATEWAY_TARGET);
-                       continue;
-                     }
-
-		  } 
-		else
-		 {
-                    
-		    for (cp = 0; cp < Write ; cp++) 
-		    {
-                      write_value[cp] = query[cp + 13];
-                    }
-                   
-		   /*
-                    * Transmit CAN Write Request and handle response
-                    */
                     ret = can_txrx_reassemble_frag_data_write(socket_fd, can_id, write_value, length);
                     if (ret != 0)
-                     {
-                       LOG_ERROR("CAN communication failed\n\n");
-                       modbus_reply_exception(ctx, query, MODBUS_EXCEPTION_GATEWAY_TARGET);
-                       continue;
-                     }
+                    {
+                        LOG_ERROR("CAN communication failed\n\n");
 
-		 }	
-	    
-	     	goto write_okey_riply;	
-            } 
+                        ret = modbus_reply_exception(ctx, query, MODBUS_EXCEPTION_GATEWAY_TARGET);
+                        if (ret == -1)
+                        {
+                            LOG_ERROR("Failed to send Modbus exception response\n");
+                        }
+                        continue;
+                    }
+                }
+                else
+                {
+                    for (cp = 0; cp < Write; cp++)
+                    {
+                        write_value[cp] = query[cp + 13];
+                    }
+
+                    /*
+                     * Transmit CAN Write Request and handle response
+                     */
+                    ret = can_txrx_reassemble_frag_data_write(socket_fd, can_id, write_value, length);
+                    if (ret != 0)
+                    {
+                        LOG_ERROR("CAN communication failed\n\n");
+
+                        ret = modbus_reply_exception(ctx, query, MODBUS_EXCEPTION_GATEWAY_TARGET);
+                        if (ret == -1)
+                        {
+                            LOG_ERROR("Failed to send Modbus exception response\n");
+                        }
+                        continue;
+                    }
+                }
+
+                LOG_DEBUG("CAN module write operation successful\n");
+
+                /*
+                 * Go to the reply label to send response
+                 */
+                goto Can_write_okey_riply;
+            }
+
+            /*
+             * Here: CAN module read operation will be detected
+             */
+            LOG_DEBUG("Read operation detected: For CAN module, Function Code = 0x%02X\n", fun_code);
 
             /*
              * Prepare CAN message
              */
-             req_type = CAN_READ_REQ_MSG_ID;
+            req_type = CAN_READ_REQ_MSG_ID;
 
-	     /*
-	      * Construct the CAN id
-	      */
-	     can_id = (0 << 27) |
-                      (1 << 23) |
-                      (data_header << 20) |
-                      (req_type << 16) |
-                      (start_addr);
+            /*
+             * Construct the CAN ID
+             */
+            can_id = (0 << 27) |
+                     (1 << 23) |
+                     (data_header << 20) |
+                     (req_type << 16) |
+                     (start_addr);
 
-             LOG_DEBUG("Sending CAN ID: %d (0x%X)\n", can_id, can_id);
-             
-	     /*
-              * Send CAN request and receive response
-              */
-             ret = can_txrx_reassemble_frag_data_read(socket_fd, can_id, length, fun_code);
-             if (ret != 0)
-             {
-                 LOG_ERROR("CAN communication failed\n\n");
-		 modbus_reply_exception(ctx, query, MODBUS_EXCEPTION_GATEWAY_TARGET);
-                 continue;
-             }
-             /*
-              * Process received CAN data into Modbus registers
-              */
+            /*
+             * Send CAN request and receive response
+             */
+            ret = can_txrx_reassemble_frag_data_read(socket_fd, can_id, length, fun_code);
+            if (ret != 0)
+            {
+                LOG_ERROR("CAN communication failed\n\n");
+
+                ret = modbus_reply_exception(ctx, query, MODBUS_EXCEPTION_GATEWAY_TARGET);
+                if (ret == -1)
+                {
+                    LOG_ERROR("Failed to send Modbus exception response\n");
+                }
+                continue;
+            }
+
+            LOG_DEBUG("CAN module read operation successful\n");
+
+            /*
+             * Process received CAN data into Modbus registers
+             */
 
 EE_PROM_Read_reply:	      
              start_addr--;
@@ -1967,7 +2130,7 @@ EE_PROM_Read_reply:
                        }       
                } 
 
-write_okey_riply:	   
+Can_write_okey_riply:	   
 EE_PROM_write_reply:	     
              /*
               * Send Modbus response to client
